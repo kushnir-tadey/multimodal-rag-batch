@@ -205,3 +205,13 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Project-specific ignored files
+
+# Data files (scraped articles and images)
+data/raw/
+data/processed/
+data/images/
+
+# Chroma / FAISS DB (embeddings)
+src/indexing/chroma_db/
