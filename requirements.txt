@@ -1,0 +1,30 @@
+# ----------------------
+# Web scraping
+# ----------------------
+requests
+beautifulsoup4
+newspaper3k
+lxml[html_clean]
+
+# ----------------------
+# Text and image embeddings
+# ----------------------
+sentence-transformers
+torch
+transformers
+Pillow
+
+# ----------------------
+# Multimodal retrieval / vector database
+# ----------------------
+faiss-cpu
+
+# ----------------------
+# Web UI
+# ----------------------
+streamlit
+
+# ----------------------
+# Utilities
+# ----------------------
+tqdm
