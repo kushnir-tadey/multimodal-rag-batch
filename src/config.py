@@ -1,4 +1,9 @@
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+# Load .env variables
+load_dotenv()
 
 # ----------------------
 # Project Paths
@@ -21,12 +26,12 @@ IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 BASE_URL = "https://www.deeplearning.ai"
 BATCH_ARCHIVE_URL = f"{BASE_URL}/the-batch/"
 
-
 # ----------------------
-# Model Settings
+# API Keys / Models (from .env)
 # ----------------------
-TEXT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-IMAGE_EMBEDDING_MODEL = "openai/clip-vit-base-patch32"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4.1-mini") 
 
 # ----------------------
 # Retrieval Settings

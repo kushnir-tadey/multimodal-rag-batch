@@ -28,3 +28,5 @@ streamlit
 # Utilities
 # ----------------------
 tqdm
+
+python-dotenv

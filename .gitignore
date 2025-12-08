@@ -215,3 +215,5 @@ data/images/
 
 # Chroma / FAISS DB (embeddings)
 src/indexing/chroma_db/
+
+.env

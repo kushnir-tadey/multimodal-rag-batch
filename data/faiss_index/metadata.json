@@ -1,0 +1,77 @@
+[
+  {
+    "id": 0,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-319/",
+    "title": "Drone Swarms Go To War, States Ban AI Mental-Health Treatments, Qwen3-Next Accelerates, and more...",
+    "content": "Dear friends, Automated software testing is growing in importance in the era of AI-assisted coding. Agentic coding systems accelerate development but are also unreliable. Agentic testing \u2014 where you ask AI to write tests and check your code against them \u2014 is helping. Automatically testing infrastruc..."
+  },
+  {
+    "id": 1,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-319/",
+    "title": "Drone Swarms Go To War, States Ban AI Mental-Health Treatments, Qwen3-Next Accelerates, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\unnamed--74-.jpg",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 2,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-330/",
+    "title": "Meta\u2019s Open 3D Pipeline, World Labs\u2019 Virtual Spaces, Baidu\u2019s Multimodal Models, and more...",
+    "content": "Dear friends, Separate reports by the publicity firm Edelman and Pew Research show that Americans, and more broadly large parts of Europe and the western world, do not trust AI and are not excited about it. Despite the AI community\u2019s optimism about the tremendous benefits AI will bring, we should ta..."
+  },
+  {
+    "id": 3,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-330/",
+    "title": "Meta\u2019s Open 3D Pipeline, World Labs\u2019 Virtual Spaces, Baidu\u2019s Multimodal Models, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Why-People-Don-t-Trust-AI-and-What-To-Do-About-It-1.png",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 4,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-317/",
+    "title": "Gemini\u2019s Environmental Impact, China\u2019s Emerging AI Hub, Chatbot Job Interviews, and more...",
+    "content": "Dear friends, There is significant unmet demand for developers who understand AI. At the same time, because most universities have not yet adapted their curricula to the new reality of programming jobs being much more productive with AI tools, there is also an uptick in unemployment of recent CS gra..."
+  },
+  {
+    "id": 5,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-317/",
+    "title": "Gemini\u2019s Environmental Impact, China\u2019s Emerging AI Hub, Chatbot Job Interviews, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\CODER-INTERVIEW-2022-2025-2.jpg",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 6,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-329/",
+    "title": "Google Rules Arena Leaderboards, Microsoft+Anthropic, Record Labels Back AI Music, and more...",
+    "content": "Dear friends, Is there an AI bubble? With the massive number of dollars going into AI infrastructure such as OpenAI\u2019s $1.4 trillion plan and Nvidia briefly reaching a $5 trillion market cap, many have asked if speculation and hype have driven the values of AI investments above sustainable values. Ho..."
+  },
+  {
+    "id": 7,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-329/",
+    "title": "Google Rules Arena Leaderboards, Microsoft+Anthropic, Record Labels Back AI Music, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Understanding-the-AI-Bubble---If-There-Is-One.png",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 8,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-326/",
+    "title": "OpenAI Reorgs For Profit, MiniMax-M2 Leads Open Coding, Universal Music Group Embraces AI, and more...",
+    "content": "Dear friends, AI agents are getting better at looking at different types of data in businesses to spot patterns and create value. This is making data silos increasingly painful. This is why I increasingly try to select software that lets me control my own data, so I can make it available to my AI ag..."
+  },
+  {
+    "id": 9,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-326/",
+    "title": "OpenAI Reorgs For Profit, MiniMax-M2 Leads Open Coding, Universal Music Group Embraces AI, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Tear-Down-Data-Silos--1.png",
+    "content": "[Image Associated with Article]"
+  }
+]

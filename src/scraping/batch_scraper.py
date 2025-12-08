@@ -18,15 +18,8 @@ from src.config import BATCH_ARCHIVE_URL, BASE_URL, RAW_DIR, IMAGES_DIR
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ----------------------
-# Constants
-# ----------------------
 HEADERS = {"User-Agent": "MultimodalRAG/0.1 (contact: your_email@example.com)"}
 
-
-# ----------------------
-# Dataclass for Articles
-# ----------------------
 @dataclass
 class BatchArticle:
     url: str
@@ -35,12 +28,10 @@ class BatchArticle:
     top_image_url: Optional[str] = None
     local_image_path: Optional[str] = None
 
-
 # ----------------------
 # Utility: Fetch HTML
 # ----------------------
 def fetch_html(url: str, timeout: int = 15) -> Optional[str]:
-    """Fetch raw HTML from a given URL."""
     try:
         response = requests.get(url, headers=HEADERS, timeout=timeout)
         response.raise_for_status()
@@ -49,45 +40,28 @@ def fetch_html(url: str, timeout: int = 15) -> Optional[str]:
         logger.warning("Failed to fetch %s: %s", url, exc)
         return None
 
-
 # ----------------------
-# Extract Article Links (Updated!)
+# Extract Links
 # ----------------------
 def parse_archive_page(html: str) -> List[str]:
-    """
-    Parse the Batch archive page and extract article URLs.
-
-    Based on your HTML snippet:
-    Each <article> contains a link like:
-       <a href="/the-batch/issue-330/">
-
-    We select: article a[href^='/the-batch/issue']
-    """
     soup = BeautifulSoup(html, "html.parser")
-
     links = []
+    # Select articles. The selector might need adjustment if site layout changes
     for a in soup.select("article a[href^='/the-batch/issue']"):
         href = a.get("href")
         if href:
-            # Convert relative links → absolute URLs
             full_url = urljoin(BASE_URL, href)
             links.append(full_url)
-
-    logger.info("Extracted %d article URLs", len(links))
-    return links
-
+    return list(set(links)) # Deduplicate
 
 # ----------------------
-# Download Article Images
+# Download Image
 # ----------------------
 def download_image(url: str, dest_dir: Path = IMAGES_DIR) -> Optional[Path]:
-    """Download image to local folder."""
     dest_dir.mkdir(parents=True, exist_ok=True)
     filename = url.split("/")[-1].split("?")[0] or "image.jpg"
     dst = dest_dir / filename
-
-    if dst.exists():
-        return dst
+    if dst.exists(): return dst
 
     try:
         r = requests.get(url, headers=HEADERS, stream=True, timeout=20)
@@ -96,78 +70,78 @@ def download_image(url: str, dest_dir: Path = IMAGES_DIR) -> Optional[Path]:
             for chunk in r.iter_content(1024):
                 f.write(chunk)
         return dst
-    except Exception as exc:
-        logger.warning("Failed to download image %s: %s", url, exc)
+    except Exception:
         return None
-
 
 # ----------------------
 # Scrape Single Article
 # ----------------------
 def scrape_article(url: str) -> Optional[BatchArticle]:
-    """Download and parse a single article using newspaper3k."""
     try:
         article = Article(url)
         article.download()
         article.parse()
-
-        top_img = article.top_image if article.top_image else None
-
         return BatchArticle(
             url=url,
             title=article.title or "",
             text=article.text or "",
-            top_image_url=top_img,
+            top_image_url=article.top_image,
         )
-
     except Exception as exc:
         logger.warning("Failed to scrape %s: %s", url, exc)
         return None
 
-
 # ----------------------
-# Main Batch Scraper
+# Main Loop (With Pagination)
 # ----------------------
 def scrape_batch_archive(limit: int = 10) -> None:
-    """Scrape The Batch archive and save articles to JSON."""
-    html = fetch_html(BATCH_ARCHIVE_URL)
-
-    if not html:
-        logger.error("Could not fetch archive page.")
-        return
-
-    article_urls = parse_archive_page(html)[:limit]
-    logger.info("Found %d article URLs", len(article_urls))
-
     articles: List[BatchArticle] = []
+    page = 1
+    
+    while len(articles) < limit:
+        # Handle pagination logic
+        current_url = f"{BATCH_ARCHIVE_URL}?page={page}" if page > 1 else BATCH_ARCHIVE_URL
+        logger.info(f"Checking archive page {page}: {current_url}")
+        
+        html = fetch_html(current_url)
+        if not html:
+            break
+            
+        page_links = parse_archive_page(html)
+        if not page_links:
+            logger.info("No more articles found.")
+            break
+            
+        logger.info(f"Found {len(page_links)} links on page {page}")
+        
+        for url in page_links:
+            if len(articles) >= limit:
+                break
+                
+            # Skip if we already have this URL (basic check)
+            if any(a.url == url for a in articles):
+                continue
 
-    for url in article_urls:
-        logger.info("Scraping: %s", url)
-        art = scrape_article(url)
+            logger.info(f"Scraping [{len(articles)+1}/{limit}]: {url}")
+            art = scrape_article(url)
+            
+            if art:
+                if art.top_image_url:
+                    local = download_image(art.top_image_url)
+                    art.local_image_path = str(local) if local else None
+                articles.append(art)
+                time.sleep(0.5) # Be polite
 
-        if not art:
-            continue
+        page += 1
 
-        # Download image
-        if art.top_image_url:
-            local = download_image(art.top_image_url)
-            art.local_image_path = str(local) if local else None
-
-        articles.append(art)
-        time.sleep(1.0)  # polite delay
-
-    # Save JSON
+    # Save
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     out_path = RAW_DIR / "articles.json"
-
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump([asdict(a) for a in articles], f, ensure_ascii=False, indent=2)
+    
+    logger.info(f"Completed. Saved {len(articles)} articles to {out_path}")
 
-    logger.info("Saved %d articles to %s", len(articles), out_path)
-
-
-# ----------------------
-# Run Script
-# ----------------------
 if __name__ == "__main__":
+    # KEEP THIS LOW FOR NOW
     scrape_batch_archive(limit=5)
