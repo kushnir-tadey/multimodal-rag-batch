@@ -37,20 +37,30 @@ def load_retriever():
 
 retriever = load_retriever()
 
+# Determine max limit (handle case where index might be empty or load failed)
+max_items = retriever.total_items if retriever else 10
+if max_items < 1: max_items = 1 # Slider crashes if max < min
+
 # ----------------------
 # Sidebar
 # ----------------------
 with st.sidebar:
     st.header("Settings")
-    top_k = st.slider("Retrieval Count (Top K)", 1, 10, 3)
+    # Dynamic Slider: 1 to Total Items (Default: 3)
+    top_k = st.slider("Retrieval Count (Top K)", 1, max_items, min(3, max_items))
+    
+    st.info(f"Database contains {max_items} items.") # Helpful status text
     st.info("This controls how many articles/images are sent to the LLM.")
 
 # ----------------------
 # Main Interaction
 # ----------------------
-query = st.text_input("Enter your question:", placeholder="e.g., What is new in robotics?")
+# We use a form so pressing "Enter" triggers the submit button
+with st.form(key="search_form"):
+    query = st.text_input("Enter your question:", placeholder="e.g., What is new in robotics?")
+    submit_button = st.form_submit_button("Search & Answer")
 
-if st.button("Search & Answer") and query:
+if submit_button and query:
     if not retriever:
         st.error("Retriever is not ready. Did you run the indexer?")
         st.stop()
