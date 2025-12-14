@@ -30,12 +30,6 @@ BATCH_ARCHIVE_URL = f"{BASE_URL}/the-batch/"
 # API Keys / Models (from .env)
 # ----------------------
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
-LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4.1-mini") 
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "clip-ViT-B-32")
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 
-# ----------------------
-# Retrieval Settings
-# ----------------------
-TOP_K_TEXT = 5
-TOP_K_IMAGES = 3
-MULTIMODAL_ALPHA = 0.7  # Weight for text vs image

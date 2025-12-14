@@ -13,7 +13,8 @@ class MultimodalRetriever:
     def __init__(self, index_dir: Path = DATA_DIR / "faiss_index"):
         self.index_path = index_dir / "multimodal.index"
         self.metadata_path = index_dir / "metadata.json"
-        self.model_name = "clip-ViT-B-32"  # Must match the one used in indexer.py
+
+        self.model_name = EMBEDDING_MODEL 
         
         self._load_resources()
 

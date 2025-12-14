@@ -9,7 +9,7 @@ import torch
 from PIL import Image
 from sentence_transformers import SentenceTransformer
 
-from src.config import PROCESSED_DIR, IMAGES_DIR, DATA_DIR
+from src.config import PROCESSED_DIR, IMAGES_DIR, DATA_DIR, EMBEDDING_MODEL # Import EMBEDDING_MODEL
 
 # ----------------------
 # Configuration
@@ -17,9 +17,8 @@ from src.config import PROCESSED_DIR, IMAGES_DIR, DATA_DIR
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# We use CLIP because it embeds Text and Images into the SAME vector space.
-# This allows "Text Query" -> "Image Result" matching.
-MODEL_NAME = "clip-ViT-B-32"
+# Use the model defined in config
+MODEL_NAME = EMBEDDING_MODEL 
 INDEX_DIR = DATA_DIR / "faiss_index"
 INDEX_DIR.mkdir(parents=True, exist_ok=True)
 
