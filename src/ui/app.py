@@ -46,7 +46,7 @@ if max_items < 1: max_items = 1 # Slider crashes if max < min
 with st.sidebar:
     st.header("Settings")
     # Dynamic Slider: 1 to Total Items (Default: 3)
-    top_k = st.slider("Retrieval Count (Top K)", 1, max_items, min(3, max_items))
+    top_k = st.slider("Retrieval Count (Top K)", 1, max_items, min(5, max_items))
     
     st.info(f"Database contains {max_items} items.") # Helpful status text
     st.info("This controls how many articles/images are sent to the LLM.")
@@ -74,19 +74,31 @@ if submit_button and query:
     with st.expander(f"📂 View Retrieved Context ({len(retrieved_items)} items)", expanded=False):
         st.caption(f"Retrieval took {retrieval_time:.2f}s")
         
-        cols = st.columns(len(retrieved_items))
+        # FIX: Use a fixed grid (3 columns) instead of len(retrieved_items)
+        num_cols = 3
+        cols = st.columns(num_cols)
+        
         for idx, item in enumerate(retrieved_items):
-            with cols[idx]:
-                score = item.get('score', 0)
-                st.markdown(f"**{item['title']}**")
-                st.caption(f"Score: {score:.4f}")
-                
-                # Show Image if available
-                if item['type'] == 'image' and item.get('image_path'):
-                    st.image(item['image_path'], use_container_width=True)
-                # Show Text snippet
-                else:
-                    st.text(f"{item.get('content', '')[:150]}...")
+            # Calculate which column to put this item in (0, 1, or 2)
+            col_idx = idx % num_cols
+            
+            with cols[col_idx]:
+                # Create a card-like container
+                with st.container(border=True):
+                    score = item.get('score', 0)
+                    # Truncate title if too long
+                    title = item['title']
+                    if len(title) > 50: title = title[:50] + "..."
+                    
+                    st.markdown(f"**{title}**")
+                    st.caption(f"Score: {score:.4f}")
+                    
+                    # Show Image if available
+                    if item['type'] == 'image' and item.get('image_path'):
+                        st.image(item['image_path'], use_container_width=True)
+                    # Show Text snippet
+                    else:
+                        st.text(f"{item.get('content', '')[:100]}...")
 
     # 3. Generate Answer
     with st.spinner("💡 Generating answer with GPT-4o..."):
