@@ -35,6 +35,11 @@ class MultimodalRetriever:
         print(f"Loading Model {self.model_name}...")
         self.model = SentenceTransformer(self.model_name)
 
+    @property
+    def total_items(self) -> int:
+        """Returns the total number of items in the index."""
+        return self.index.ntotal
+
     def search(self, query: str, k: int = 3) -> List[Dict]:
         """
         Search for text or images using a text query.

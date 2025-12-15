@@ -2,42 +2,27 @@
   {
     "id": 0,
     "type": "text",
-    "url": "https://www.deeplearning.ai/the-batch/issue-319/",
-    "title": "Drone Swarms Go To War, States Ban AI Mental-Health Treatments, Qwen3-Next Accelerates, and more...",
-    "content": "Dear friends, Automated software testing is growing in importance in the era of AI-assisted coding. Agentic coding systems accelerate development but are also unreliable. Agentic testing \u2014 where you ask AI to write tests and check your code against them \u2014 is helping. Automatically testing infrastruc..."
+    "url": "https://www.deeplearning.ai/the-batch/issue-315/",
+    "title": "China Questions Nvidia, When Models Memorize, Mixture of Video Experts, OpenAI & Oracle Join Forces",
+    "content": "Dear friends, On Saturday at the Buildathon hosted by AI Fund and DeepLearning.AI, over 100 developers competed to build software products quickly using AI assisted coding. I was inspired to see developers build functional products in just 1-2 hours. The best practices for rapid engineering are chan..."
   },
   {
     "id": 1,
     "type": "image",
-    "url": "https://www.deeplearning.ai/the-batch/issue-319/",
-    "title": "Drone Swarms Go To War, States Ban AI Mental-Health Treatments, Qwen3-Next Accelerates, and more...",
-    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\unnamed--74-.jpg",
+    "url": "https://www.deeplearning.ai/the-batch/issue-315/",
+    "title": "China Questions Nvidia, When Models Memorize, Mixture of Video Experts, OpenAI & Oracle Join Forces",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\How-Non-Coders-Built-5-Software-Products-in-6--Hours.png",
     "content": "[Image Associated with Article]"
   },
   {
     "id": 2,
-    "type": "text",
-    "url": "https://www.deeplearning.ai/the-batch/issue-330/",
-    "title": "Meta\u2019s Open 3D Pipeline, World Labs\u2019 Virtual Spaces, Baidu\u2019s Multimodal Models, and more...",
-    "content": "Dear friends, Separate reports by the publicity firm Edelman and Pew Research show that Americans, and more broadly large parts of Europe and the western world, do not trust AI and are not excited about it. Despite the AI community\u2019s optimism about the tremendous benefits AI will bring, we should ta..."
-  },
-  {
-    "id": 3,
-    "type": "image",
-    "url": "https://www.deeplearning.ai/the-batch/issue-330/",
-    "title": "Meta\u2019s Open 3D Pipeline, World Labs\u2019 Virtual Spaces, Baidu\u2019s Multimodal Models, and more...",
-    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Why-People-Don-t-Trust-AI-and-What-To-Do-About-It-1.png",
-    "content": "[Image Associated with Article]"
-  },
-  {
-    "id": 4,
     "type": "text",
     "url": "https://www.deeplearning.ai/the-batch/issue-317/",
     "title": "Gemini\u2019s Environmental Impact, China\u2019s Emerging AI Hub, Chatbot Job Interviews, and more...",
     "content": "Dear friends, There is significant unmet demand for developers who understand AI. At the same time, because most universities have not yet adapted their curricula to the new reality of programming jobs being much more productive with AI tools, there is also an uptick in unemployment of recent CS gra..."
   },
   {
-    "id": 5,
+    "id": 3,
     "type": "image",
     "url": "https://www.deeplearning.ai/the-batch/issue-317/",
     "title": "Gemini\u2019s Environmental Impact, China\u2019s Emerging AI Hub, Chatbot Job Interviews, and more...",
@@ -45,14 +30,149 @@
     "content": "[Image Associated with Article]"
   },
   {
+    "id": 4,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-286/",
+    "title": "Reinforcement Learning Heats Up, White House Orders Muscular AI Policy, and more...",
+    "content": "Dear friends, The buzz over DeepSeek this week crystallized, for many people, a few important trends that have been happening in plain sight: (i) China is catching up to the U.S. in generative AI, with implications for the AI supply chain. (ii) Open weight models are commoditizing the foundation-mod..."
+  },
+  {
+    "id": 5,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-286/",
+    "title": "Reinforcement Learning Heats Up, White House Orders Muscular AI Policy, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\DeepSeek-Byte7_3D-1.jpg",
+    "content": "[Image Associated with Article]"
+  },
+  {
     "id": 6,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-325/",
+    "title": "Monsters of AI: AI Psychosis, Lethal Drones, Decaying Data, and more...",
+    "content": "Dear friends, Today I\u2019m launching DeepLearning.AI Pro \u2014 the one membership that keeps you at the forefront of AI. Please join! There has never been a moment in human history when the distance between having an idea and building it has been smaller. Things that would have required months of work for ..."
+  },
+  {
+    "id": 7,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-325/",
+    "title": "Monsters of AI: AI Psychosis, Lethal Drones, Decaying Data, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Announcing-the-DeepLearning.AI-Pro-membership---A-message-from-Andrew-Ng-1.jpg",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 8,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-322/",
+    "title": "The Batch AI News and Insights: Claude Levels Up, Qwen3 Proliferates, Big AI Diversifies Product Lines, and more...",
+    "content": "Dear friends, I\u2019m thrilled to announce my latest course: Agentic AI! This course will get you up to speed building cutting-edge agentic workflows. It is available from DeepLearning.AI here. The only prerequisite is familiarity with Python, though knowing a bit about LLMs helps too. This self-paced c..."
+  },
+  {
+    "id": 9,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-322/",
+    "title": "The Batch AI News and Insights: Claude Levels Up, Qwen3 Proliferates, Big AI Diversifies Product Lines, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Check-Out-Our-Course-on-How-to-Build-AI-Agents-png-2.png",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 10,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-326/",
+    "title": "OpenAI Reorgs For Profit, MiniMax-M2 Leads Open Coding, Universal Music Group Embraces AI, and more...",
+    "content": "Dear friends, AI agents are getting better at looking at different types of data in businesses to spot patterns and create value. This is making data silos increasingly painful. This is why I increasingly try to select software that lets me control my own data, so I can make it available to my AI ag..."
+  },
+  {
+    "id": 11,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-326/",
+    "title": "OpenAI Reorgs For Profit, MiniMax-M2 Leads Open Coding, Universal Music Group Embraces AI, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Tear-Down-Data-Silos--1.png",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 12,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-316/",
+    "title": "AI-Powered Phones Get Proactive, Robot Antelope Joins Herd, LLM Environmental Impacts Get Measured",
+    "content": "Dear friends, Parallel agents are emerging as an important new direction for scaling up AI. AI capabilities have scaled with more training data, training-time compute, and test-time compute. Having multiple agents run in parallel is growing as a technique to further scale and improve performance. We..."
+  },
+  {
+    "id": 13,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-316/",
+    "title": "AI-Powered Phones Get Proactive, Robot Antelope Joins Herd, LLM Environmental Impacts Get Measured",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Agents-Running-in-Parallel-Get-There-Faster-2.png",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 14,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-319/",
+    "title": "Drone Swarms Go To War, States Ban AI Mental-Health Treatments, Qwen3-Next Accelerates, and more...",
+    "content": "Dear friends, Automated software testing is growing in importance in the era of AI-assisted coding. Agentic coding systems accelerate development but are also unreliable. Agentic testing \u2014 where you ask AI to write tests and check your code against them \u2014 is helping. Automatically testing infrastruc..."
+  },
+  {
+    "id": 15,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-319/",
+    "title": "Drone Swarms Go To War, States Ban AI Mental-Health Treatments, Qwen3-Next Accelerates, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\unnamed--74-.jpg",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 16,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-327/",
+    "title": "Safer (and Sexier) Chatbots, Better Images Through Reasoning, The Dawn of Industrial AI, and more...",
+    "content": "Dear friends, I recently received an email titled \u201cAn 18-year-old\u2019s dilemma: Too late to contribute to AI?\u201d Its author, who gave me permission to share this, is preparing for college. He is worried that by the time he graduates, AI will be so good there\u2019s no meaningful work left for him to do to con..."
+  },
+  {
+    "id": 17,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-327/",
+    "title": "Safer (and Sexier) Chatbots, Better Images Through Reasoning, The Dawn of Industrial AI, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Don-t-Believe-The-Hype-.png",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 18,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-324/",
+    "title": "Ling-1T Leads Non-Reasoning Performance, MCP Poses Security Risks, California Regulates AI, and more...",
+    "content": "Dear friends, In last week\u2019s letter, I explained how effective agentic AI development needs a disciplined evals and error analysis process, and described an approach to performing evals. This week, I\u2019d like to summarize the core ideas behind error analysis and describe some best practices. Given the..."
+  },
+  {
+    "id": 19,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-324/",
+    "title": "Ling-1T Leads Non-Reasoning Performance, MCP Poses Security Risks, California Regulates AI, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Improve-Agentic-Performance-with-Evals-and-Error-Analysis--Part-2.jpg",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 20,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-323/",
+    "title": "DeepSeek Cuts Inference Costs, OpenAI Tightens Ties with AMD, Thinking Machines Simplifies Fine-Tuning, and more...",
+    "content": "Dear friends, Readers responded with both surprise and agreement last week when I wrote that the single biggest predictor of how rapidly a team makes progress building an AI agent lay in their ability to drive a disciplined process for evals (measuring the system\u2019s performance) and error analysis (i..."
+  },
+  {
+    "id": 21,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-323/",
+    "title": "DeepSeek Cuts Inference Costs, OpenAI Tightens Ties with AMD, Thinking Machines Simplifies Fine-Tuning, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Fruitbasket7_1200px-1.jpg",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 22,
     "type": "text",
     "url": "https://www.deeplearning.ai/the-batch/issue-329/",
     "title": "Google Rules Arena Leaderboards, Microsoft+Anthropic, Record Labels Back AI Music, and more...",
     "content": "Dear friends, Is there an AI bubble? With the massive number of dollars going into AI infrastructure such as OpenAI\u2019s $1.4 trillion plan and Nvidia briefly reaching a $5 trillion market cap, many have asked if speculation and hype have driven the values of AI investments above sustainable values. Ho..."
   },
   {
-    "id": 7,
+    "id": 23,
     "type": "image",
     "url": "https://www.deeplearning.ai/the-batch/issue-329/",
     "title": "Google Rules Arena Leaderboards, Microsoft+Anthropic, Record Labels Back AI Music, and more...",
@@ -60,18 +180,78 @@
     "content": "[Image Associated with Article]"
   },
   {
-    "id": 8,
+    "id": 24,
     "type": "text",
-    "url": "https://www.deeplearning.ai/the-batch/issue-326/",
-    "title": "OpenAI Reorgs For Profit, MiniMax-M2 Leads Open Coding, Universal Music Group Embraces AI, and more...",
-    "content": "Dear friends, AI agents are getting better at looking at different types of data in businesses to spot patterns and create value. This is making data silos increasingly painful. This is why I increasingly try to select software that lets me control my own data, so I can make it available to my AI ag..."
+    "url": "https://www.deeplearning.ai/the-batch/issue-328/",
+    "title": "Self-Driving On U.S. Freeways, Open LLM Tops Agentic Leaderboard, Anthropic Sparks Controversy, and more...",
+    "content": "Dear friends, I just got back from AI Dev x NYC, the AI developer conference where our community gathers for a day of coding, learning, and connecting. The vibe in the room was buzzing! It was at the last AI Dev in San Francisco that I met up with Kirsty Tan and started collaborating with her on wha..."
   },
   {
-    "id": 9,
+    "id": 25,
     "type": "image",
-    "url": "https://www.deeplearning.ai/the-batch/issue-326/",
-    "title": "OpenAI Reorgs For Profit, MiniMax-M2 Leads Open Coding, Universal Music Group Embraces AI, and more...",
-    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Tear-Down-Data-Silos--1.png",
+    "url": "https://www.deeplearning.ai/the-batch/issue-328/",
+    "title": "Self-Driving On U.S. Freeways, Open LLM Tops Agentic Leaderboard, Anthropic Sparks Controversy, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\What-We-Learned-at-AI-Dev-x-NYC-2025-1.png",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 26,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-318/",
+    "title": "Stronger Chatbot Guardrails, Weaker Google Monopoly, AI-Assisted Education, and more...",
+    "content": "Dear friends, This week, Coursera held its annual conference in Las Vegas. A major theme was the shift from knowledge- to skills-based education, which will help many individuals, businesses, and educational institutions. This annual gathering brings together leaders from academia, business, and gov..."
+  },
+  {
+    "id": 27,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-318/",
+    "title": "Stronger Chatbot Guardrails, Weaker Google Monopoly, AI-Assisted Education, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Knowledge-Is-Great--Skills-Are-Greater.png",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 28,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-320/",
+    "title": "AI Agents Spend Money, Online Betting Automates, ChatGPT Users Shift, and more...",
+    "content": "Dear friends, Last week, China barred its major tech companies from buying Nvidia chips. This move received only modest attention in the media, but has implications far beyond what\u2019s widely appreciated. Specifically, it signals that China has progressed sufficiently in semiconductors to break away f..."
+  },
+  {
+    "id": 29,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-320/",
+    "title": "AI Agents Spend Money, Online Betting Automates, ChatGPT Users Shift, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\High-Stakes-in-the-U.S.-China-AI-Chip-Race.png",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 30,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-321/",
+    "title": "OpenAI\u2019s Trillion-Dollar Bet, Generating Viruses, Modeling Planet Earth, and more...",
+    "content": "Dear friends, LandingAI\u2019s Agentic Document Extraction (ADE) turns PDF files into LLM-ready markdown text. I\u2019m excited about this tool providing a powerful building block for developers to use in applications in financial services, healthcare, logistics, legal, insurance, and many other sectors. Befo..."
+  },
+  {
+    "id": 31,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-321/",
+    "title": "OpenAI\u2019s Trillion-Dollar Bet, Generating Viruses, Modeling Planet Earth, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\How-to-Liberate-Data-From-Large--Complex-PDFs-3.gif",
+    "content": "[Image Associated with Article]"
+  },
+  {
+    "id": 32,
+    "type": "text",
+    "url": "https://www.deeplearning.ai/the-batch/issue-330/",
+    "title": "Meta\u2019s Open 3D Pipeline, World Labs\u2019 Virtual Spaces, Baidu\u2019s Multimodal Models, and more...",
+    "content": "Dear friends, Separate reports by the publicity firm Edelman and Pew Research show that Americans, and more broadly large parts of Europe and the western world, do not trust AI and are not excited about it. Despite the AI community\u2019s optimism about the tremendous benefits AI will bring, we should ta..."
+  },
+  {
+    "id": 33,
+    "type": "image",
+    "url": "https://www.deeplearning.ai/the-batch/issue-330/",
+    "title": "Meta\u2019s Open 3D Pipeline, World Labs\u2019 Virtual Spaces, Baidu\u2019s Multimodal Models, and more...",
+    "image_path": "C:\\Tadey\\Data Science Retraining\\Practical task\\multimodal-rag-batch\\data\\images\\Why-People-Don-t-Trust-AI-and-What-To-Do-About-It-1.png",
     "content": "[Image Associated with Article]"
   }
 ]
