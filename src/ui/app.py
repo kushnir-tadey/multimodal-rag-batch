@@ -2,8 +2,7 @@ import sys
 import os
 from pathlib import Path
 
-# --- FIX: Add Project Root to Path ---
-# This ensures Python can find 'src' modules regardless of where the script is run
+
 current_file = Path(__file__).resolve()
 project_root = current_file.parent.parent.parent
 sys.path.append(str(project_root))
