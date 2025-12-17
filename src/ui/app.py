@@ -110,14 +110,19 @@ if submit_button and query:
         st.session_state.current_page = 1
         st.session_state.retrieval_time = retrieval_time
         
-        # 3. Generate Answer (SMART LIMIT)
-        # Tier 1 allows ~200k tokens. 
-        # 30 chunks gives us deep context while staying fast.
-        safe_limit = min(top_k, 30)
-        llm_context = results[:safe_limit] 
+        # 3. Generate Answer (SMART SPLIT LIMIT)
+        # Strategy: Send LOTS of text (to find deep stats) but FEW images (to prevent timeouts).
+        
+        # Separate the results by type
+        text_results = [item for item in results if item['type'] == 'text']
+        image_results = [item for item in results if item['type'] == 'image']
+        
+        # Limit Text to 75 chunks (~3500 words) -> Deep Context
+        # Limit Images to 3 items -> Safe Payload size
+        final_context = text_results[:75] + image_results[:3]
         
         try:
-            st.session_state.generated_answer = generate_answer(query, llm_context)
+            st.session_state.generated_answer = generate_answer(query, final_context)
         except Exception as e:
             st.session_state.generated_answer = f"⚠️ Error generating answer: {str(e)}"
 
@@ -131,7 +136,7 @@ if st.session_state.search_results:
     st.markdown("### 📝 Answer")
     if st.session_state.generated_answer:
         st.markdown(st.session_state.generated_answer)
-        st.caption(f"Answer generated using top {min(top_k, 30)} chunks.")
+        st.caption(f"Answer generated using top {min(top_k, 75)} text chunks + top 3 images.")
     st.divider()
 
     # --- Pagination & Grid Logic ---
