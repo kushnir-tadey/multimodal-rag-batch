@@ -56,18 +56,20 @@ if max_items < 1: max_items = 1
 with st.sidebar:
     st.header("Settings")
     
-    # Recall Control (User can see many results)
-    default_k = min(10, max_items)
-    top_k = st.slider("Retrieval Context (Top K)", 1, max_items, default_k)
+    # Recall Control
+    slider_max = min(max_items, 100) 
+    default_k = min(20, slider_max)
+    
+    top_k = st.slider("Retrieval Context (Top K)", 1, slider_max, default_k)
     
     if retriever:
-        st.info(f"📚 Database contains {max_items} items.")
+        st.info(f"📚 Database contains {max_items} searchable chunks/images.")
     else:
         st.error("⚠️ Index not found. Please run `python -m src.indexing.indexer`.")
     
     st.divider()
     
-    items_per_page = st.number_input("Items per page", min_value=3, max_value=12, value=6, step=3)
+    items_per_page = st.number_input("Grid items per page", min_value=3, max_value=12, value=6, step=3)
 
 # ----------------------
 # Main Search Interaction
@@ -87,18 +89,42 @@ if submit_button and query:
         results = retriever.search(query, k=top_k)
         retrieval_time = time.time() - start_time
         
+        # --- KEYWORD BOOSTING (Re-Ranking) ---
+        # Vector search finds "concepts" (e.g., AI performance), but might miss specific names (e.g., Qwen3).
+        # We manually boost the score of any result that contains the exact keywords.
+        query_terms = [term.lower() for term in query.split() if len(term) > 3] # Filter out short words
+        
+        for item in results:
+            # Combine title and content to check for keywords
+            text_to_check = (item.get('title', '') + " " + item.get('content', '')).lower()
+            
+            for term in query_terms:
+                if term in text_to_check:
+                    # Add a significant boost (0.2) to push these items to the top
+                    item['score'] = item.get('score', 0) + 0.2
+        
+        # Re-sort the results based on the new boosted scores
+        results.sort(key=lambda x: x['score'], reverse=True)
+        # -------------------------------------
+
         # 2. Store in Session State
         st.session_state.search_results = results
         st.session_state.current_page = 1
         st.session_state.retrieval_time = retrieval_time
         
-        # 3. Generate Answer (Safe Limit)
-        # Even if user asks for 50, we only send 5 to the LLM to save tokens.
-        safe_limit = min(top_k, 5)
-        llm_context = results[:safe_limit] 
+        # 3. Generate Answer (SMART SPLIT LIMIT)
+        # Strategy: Send LOTS of text (to find deep stats) but FEW images (to prevent timeouts).
+        
+        # Separate the results by type
+        text_results = [item for item in results if item['type'] == 'text']
+        image_results = [item for item in results if item['type'] == 'image']
+        
+        # Limit Text to 75 chunks (~3500 words) -> Deep Context
+        # Limit Images to 3 items -> Safe Payload size
+        final_context = text_results[:75] + image_results[:3]
         
         try:
-            st.session_state.generated_answer = generate_answer(query, llm_context)
+            st.session_state.generated_answer = generate_answer(query, final_context)
         except Exception as e:
             st.session_state.generated_answer = f"⚠️ Error generating answer: {str(e)}"
 
@@ -108,14 +134,49 @@ if submit_button and query:
 if st.session_state.search_results:
     results = st.session_state.search_results
     
-    # --- Answer Section ---
+    # --- 1. Answer Section ---
     st.markdown("### 📝 Answer")
     if st.session_state.generated_answer:
         st.markdown(st.session_state.generated_answer)
-        st.caption(f"Answer generated using top {min(top_k, 5)} results.")
+        
+        # --- NEW: Source Attribution ---
+        # Identify unique articles used in the generation context
+        # We look at the top 75 chunks (the same ones sent to the LLM)
+        used_chunks = [item for item in results if item['type'] == 'text'][:75]
+        
+        unique_sources = {}
+        for item in used_chunks:
+            title = item.get('title', 'Unknown Article')
+            url = item.get('url', '#')
+            # Only add if we haven't seen this URL yet
+            if url and url not in unique_sources:
+                unique_sources[url] = title
+        
+        if unique_sources:
+            with st.expander("📚 Sources / References", expanded=False):
+                for url, title in unique_sources.items():
+                    st.markdown(f"- [{title}]({url})")
+        
+        st.caption(f"Answer generated using top {len(used_chunks)} text chunks + top 3 images.")
+    
+    # --- 2. Top Visual Matches (The "Show Me" Section) ---
+    # If we found images, show the best 3 immediately so the user sees them.
+    top_images = [item for item in results if item['type'] == 'image'][:3]
+    
+    if top_images:
+        st.divider()
+        st.markdown("### 🖼️ Relevant Images")
+        img_cols = st.columns(3)
+        for i, img_item in enumerate(top_images):
+            with img_cols[i]:
+                # Use container to align captions nicely
+                with st.container(border=True):
+                    st.image(img_item['image_path'], width="stretch")
+                    st.caption(img_item.get('title', '')[:60] + "...")
+
     st.divider()
 
-    # --- Pagination & Grid ---
+    # --- 3. Pagination & Grid Logic ---
     total_items = len(results)
     total_pages = math.ceil(total_items / items_per_page)
     
@@ -126,7 +187,8 @@ if st.session_state.search_results:
     end_idx = start_idx + items_per_page
     current_batch = results[start_idx:end_idx]
 
-    with st.expander(f"📂 View Retrieved Context ({len(results)} items found)", expanded=True):
+    # Use an expander so the full grid is optional
+    with st.expander(f"📂 View All Retrieved Context ({len(results)} items found)", expanded=False):
         st.caption(f"Page {st.session_state.current_page}/{total_pages} | Retrieval: {st.session_state.retrieval_time:.4f}s")
         
         cols = st.columns(3)
@@ -134,18 +196,22 @@ if st.session_state.search_results:
             col_idx = idx % 3
             with cols[col_idx]:
                 with st.container(border=True):
-                    title = item.get('title', 'No Title')
-                    if len(title) > 60: title = title[:60] + "..."
+                    score = item.get('score', 0)
+                    # Truncate title if too long
+                    title = item['title']
+                    if len(title) > 50: title = title[:50] + "..."
                     
                     st.markdown(f"**{title}**")
-                    st.caption(f"Score: {item.get('score', 0):.4f}")
+                    st.caption(f"Score: {score:.4f}")
                     
+                    # Show Image if available
                     if item['type'] == 'image' and item.get('image_path'):
-                        # FIX: Replaced use_container_width with width="stretch"
-                        st.image(item['image_path'], width="stretch")
+                        st.image(item['image_path'], use_container_width=True)
+                    # Show Text snippet
                     else:
                         st.text(f"{item.get('content', '')[:120]}...")
 
+        # Pagination Buttons
         if total_pages > 1:
             c1, c2, c3 = st.columns([1, 8, 1])
             with c1:
