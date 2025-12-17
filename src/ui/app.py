@@ -132,14 +132,30 @@ if submit_button and query:
 if st.session_state.search_results:
     results = st.session_state.search_results
     
-    # --- Answer Section ---
+    # --- 1. Answer Section ---
     st.markdown("### 📝 Answer")
     if st.session_state.generated_answer:
         st.markdown(st.session_state.generated_answer)
         st.caption(f"Answer generated using top {min(top_k, 75)} text chunks + top 3 images.")
+    
+    # --- 2. NEW: Top Visual Matches (The "Show Me" Section) ---
+    # If we found images, show the best 3 immediately so the user sees them.
+    top_images = [item for item in results if item['type'] == 'image'][:3]
+    
+    if top_images:
+        st.divider()
+        st.markdown("### 🖼️ Relevant Images")
+        img_cols = st.columns(3)
+        for i, img_item in enumerate(top_images):
+            with img_cols[i]:
+                # Use container to align captions nicely
+                with st.container(border=True):
+                    st.image(img_item['image_path'], width="stretch")
+                    st.caption(img_item.get('title', '')[:60] + "...")
+
     st.divider()
 
-    # --- Pagination & Grid Logic ---
+    # --- 3. Pagination & Grid Logic ---
     total_items = len(results)
     total_pages = math.ceil(total_items / items_per_page)
     
@@ -150,7 +166,8 @@ if st.session_state.search_results:
     end_idx = start_idx + items_per_page
     current_batch = results[start_idx:end_idx]
 
-    with st.expander(f"📂 View Retrieved Context ({len(results)} items found)", expanded=True):
+    # Use an expander so the full grid is optional
+    with st.expander(f"📂 View All Retrieved Context ({len(results)} items found)", expanded=False):
         st.caption(f"Page {st.session_state.current_page}/{total_pages} | Retrieval: {st.session_state.retrieval_time:.4f}s")
         
         cols = st.columns(3)
