@@ -4,7 +4,7 @@ import math
 import time
 from pathlib import Path
 
-# --- FIX: Add Project Root to Path ---
+# --- Path Setup ---
 current_file = Path(__file__).resolve()
 project_root = current_file.parent.parent.parent
 sys.path.append(str(project_root))
@@ -31,6 +31,8 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = 1
 if 'generated_answer' not in st.session_state:
     st.session_state.generated_answer = ""
+if 'retrieval_time' not in st.session_state:
+    st.session_state.retrieval_time = 0.0
 
 # ----------------------
 # Load Resources (Cached)
@@ -40,7 +42,6 @@ def load_retriever():
     try:
         return MultimodalRetriever()
     except Exception as e:
-        st.error(f"Failed to load index: {e}")
         return None
 
 retriever = load_retriever()
@@ -54,13 +55,18 @@ if max_items < 1: max_items = 1
 # ----------------------
 with st.sidebar:
     st.header("Settings")
-    # Let user retrieve MANY items (e.g. 20 or 50) to see them in the UI
-    top_k = st.slider("Retrieval Context (Top K)", 1, max_items, min(10, max_items))
-    st.info(f"Database contains {max_items} items.")
+    
+    # Recall Control (User can see many results)
+    default_k = min(10, max_items)
+    top_k = st.slider("Retrieval Context (Top K)", 1, max_items, default_k)
+    
+    if retriever:
+        st.info(f"📚 Database contains {max_items} items.")
+    else:
+        st.error("⚠️ Index not found. Please run `python -m src.indexing.indexer`.")
     
     st.divider()
     
-    # Pagination Settings
     items_per_page = st.number_input("Items per page", min_value=3, max_value=12, value=6, step=3)
 
 # ----------------------
@@ -72,7 +78,7 @@ with st.form(key="search_form"):
 
 if submit_button and query:
     if not retriever:
-        st.error("Retriever is not ready.")
+        st.error("❌ Retriever is not ready.")
         st.stop()
 
     with st.spinner("🔍 Retrieving & Generating..."):
@@ -81,32 +87,38 @@ if submit_button and query:
         results = retriever.search(query, k=top_k)
         retrieval_time = time.time() - start_time
         
-        # 2. Store in Session State (Reset Page to 1)
+        # 2. Store in Session State
         st.session_state.search_results = results
         st.session_state.current_page = 1
         st.session_state.retrieval_time = retrieval_time
         
-        # 3. Generate Answer (OPTIMIZATION: Only send Top 5 to LLM)
-        # This prevents 429 Rate Limit errors on Free Tier
-        llm_context = results[:5] 
-        st.session_state.generated_answer = generate_answer(query, llm_context)
+        # 3. Generate Answer (Safe Limit)
+        # Even if user asks for 50, we only send 5 to the LLM to save tokens.
+        safe_limit = min(top_k, 5)
+        llm_context = results[:safe_limit] 
+        
+        try:
+            st.session_state.generated_answer = generate_answer(query, llm_context)
+        except Exception as e:
+            st.session_state.generated_answer = f"⚠️ Error generating answer: {str(e)}"
 
 # ----------------------
-# Display Results (Paginated)
+# Display Results
 # ----------------------
 if st.session_state.search_results:
     results = st.session_state.search_results
     
-    # --- 1. Show the Answer First ---
+    # --- Answer Section ---
     st.markdown("### 📝 Answer")
-    st.markdown(st.session_state.generated_answer)
+    if st.session_state.generated_answer:
+        st.markdown(st.session_state.generated_answer)
+        st.caption(f"Answer generated using top {min(top_k, 5)} results.")
     st.divider()
 
-    # --- 2. Pagination Logic ---
+    # --- Pagination & Grid ---
     total_items = len(results)
     total_pages = math.ceil(total_items / items_per_page)
     
-    # Ensure current page is valid
     if st.session_state.current_page > total_pages:
         st.session_state.current_page = total_pages
 
@@ -114,30 +126,26 @@ if st.session_state.search_results:
     end_idx = start_idx + items_per_page
     current_batch = results[start_idx:end_idx]
 
-    # --- 3. Context Expandable with Pagination ---
     with st.expander(f"📂 View Retrieved Context ({len(results)} items found)", expanded=True):
-        st.caption(f"Showing items {start_idx + 1}-{min(end_idx, total_items)} of {total_items} | Page {st.session_state.current_page}/{total_pages}")
+        st.caption(f"Page {st.session_state.current_page}/{total_pages} | Retrieval: {st.session_state.retrieval_time:.4f}s")
         
-        # Display Grid
         cols = st.columns(3)
         for idx, item in enumerate(current_batch):
             col_idx = idx % 3
             with cols[col_idx]:
                 with st.container(border=True):
-                    # Truncate title
-                    title = item['title']
+                    title = item.get('title', 'No Title')
                     if len(title) > 60: title = title[:60] + "..."
                     
                     st.markdown(f"**{title}**")
                     st.caption(f"Score: {item.get('score', 0):.4f}")
                     
                     if item['type'] == 'image' and item.get('image_path'):
-                        # FIX: Use 'use_container_width' to fix warning
-                        st.image(item['image_path'], use_container_width=True)
+                        # FIX: Replaced use_container_width with width="stretch"
+                        st.image(item['image_path'], width="stretch")
                     else:
                         st.text(f"{item.get('content', '')[:120]}...")
 
-        # Pagination Buttons
         if total_pages > 1:
             c1, c2, c3 = st.columns([1, 8, 1])
             with c1:
