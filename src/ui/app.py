@@ -57,8 +57,10 @@ with st.sidebar:
     st.header("Settings")
     
     # Recall Control
-    default_k = min(20, max_items)
-    top_k = st.slider("Retrieval Context (Top K)", 1, max_items, default_k)
+    slider_max = min(max_items, 100) 
+    default_k = min(20, slider_max)
+    
+    top_k = st.slider("Retrieval Context (Top K)", 1, slider_max, default_k)
     
     if retriever:
         st.info(f"📚 Database contains {max_items} searchable chunks/images.")
@@ -136,9 +138,28 @@ if st.session_state.search_results:
     st.markdown("### 📝 Answer")
     if st.session_state.generated_answer:
         st.markdown(st.session_state.generated_answer)
-        st.caption(f"Answer generated using top {min(top_k, 75)} text chunks + top 3 images.")
+        
+        # --- NEW: Source Attribution ---
+        # Identify unique articles used in the generation context
+        # We look at the top 75 chunks (the same ones sent to the LLM)
+        used_chunks = [item for item in results if item['type'] == 'text'][:75]
+        
+        unique_sources = {}
+        for item in used_chunks:
+            title = item.get('title', 'Unknown Article')
+            url = item.get('url', '#')
+            # Only add if we haven't seen this URL yet
+            if url and url not in unique_sources:
+                unique_sources[url] = title
+        
+        if unique_sources:
+            with st.expander("📚 Sources / References", expanded=False):
+                for url, title in unique_sources.items():
+                    st.markdown(f"- [{title}]({url})")
+        
+        st.caption(f"Answer generated using top {len(used_chunks)} text chunks + top 3 images.")
     
-    # --- 2. NEW: Top Visual Matches (The "Show Me" Section) ---
+    # --- 2. Top Visual Matches (The "Show Me" Section) ---
     # If we found images, show the best 3 immediately so the user sees them.
     top_images = [item for item in results if item['type'] == 'image'][:3]
     

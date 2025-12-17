@@ -1,103 +1,72 @@
-import os
 import base64
-import logging
-from typing import List, Dict, Optional
-from pathlib import Path
 from openai import OpenAI
-from src.config import OPENAI_API_KEY, LLM_MODEL
+import os
 
-# Configure Logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Initialize OpenAI Client
+# Ensure your .env file has OPENAI_API_KEY
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-client = OpenAI(api_key=OPENAI_API_KEY)
-
-def encode_image(image_path: str) -> str:
-    """Encodes a local image file to base64 string."""
-    try:
-        with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode("utf-8")
-    except Exception as e:
-        logger.error(f"Error encoding image {image_path}: {e}")
-        return ""
-
-def generate_answer(query: str, retrieved_items: List[Dict]) -> str:
+def generate_answer(query, retrieved_items):
     """
-    Generates an answer using LLM based on retrieved text and images.
+    Generates an answer using GPT-4o based on retrieved text and images.
     """
-    # 1. Prepare Context (Text)
-    context_texts = []
-    image_urls = []
+    # 1. Prepare the System Prompt (THE FIX)
+    # We explicitly tell the LLM to prioritize text and ignore irrelevant images.
+    system_prompt = """
+    You are a helpful and knowledgeable AI News Assistant. 
+    You have access to a database of retrieved articles (text chunks) and images.
 
+    CORE INSTRUCTIONS:
+    1. **PRIORITY:** Your primary goal is to answer the User's Query using the provided TEXT chunks. 
+    2. **IMAGES:** You will see images in the context. 
+       - ONLY refer to them if they are directly relevant to the question (e.g., if the user asks for a chart, or the image shows the specific robot discussed).
+       - If the images are generic stock photos, cartoons, or unrelated to the specific topic (like "Qwen3"), **IGNORE THEM**. Do not describe them.
+    3. **FALLBACK:** If the text chunks contain the answer, use them! Do not say "I don't know" just because the images are irrelevant.
+    4. **Formatting:** Use Markdown. Be concise but detailed.
+    """
+
+    # 2. Build the Message Payload
+    # We combine text strings and image blobs into the format GPT-4o expects.
+    user_content = []
+    
+    # Add the Query text first
+    user_content.append({"type": "text", "text": f"User Question: {query}\n\nRetrieved Context:"})
+
+    # Process items
     for item in retrieved_items:
-        # Add text context
-        if item.get("content"):
-            context_texts.append(f"- [{item['title']}] {item['content']}")
+        # A. Text Item
+        if item['type'] == 'text':
+            snippet = f"\n- [Source: {item['title']}] {item['content']}"
+            user_content.append({"type": "text", "text": snippet})
         
-        # Add images if available (Multimodal part)
-        if item["type"] == "image" and item.get("image_path"):
-            img_b64 = encode_image(item["image_path"])
-            if img_b64:
-                image_urls.append(img_b64)
+        # B. Image Item
+        elif item['type'] == 'image' and item.get('image_path'):
+            try:
+                # We must read the local file and encode it to base64
+                with open(item['image_path'], "rb") as image_file:
+                    base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+                
+                # Add image to payload
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{base64_image}",
+                        "detail": "low" # 'low' is cheaper and usually sufficient
+                    }
+                })
+            except Exception as e:
+                print(f"Error loading image {item['image_path']}: {e}")
 
-    context_block = "\n".join(context_texts)
-
-    # 2. Construct Messages for LLM
-    # System Prompt
-    system_message = {
-        "role": "system",
-        "content": (
-            "You are a helpful AI assistant for 'The Batch' newsletter. "
-            "Use the provided context and images to answer the user's question. "
-            "If the answer is not in the context, say you don't know. "
-            "Reference the article titles when possible."
-        )
-    }
-
-    # User Prompt (Text + Images)
-    user_content = [
-        {
-            "type": "text", 
-            "text": f"Context:\n{context_block}\n\nQuestion: {query}"
-        }
-    ]
-
-    # Attach images to the prompt (Vision API)
-    for img_b64 in image_urls:
-        user_content.append({
-            "type": "image_url",
-            "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
-        })
-
-    messages = [system_message, {"role": "user", "content": user_content}]
-
-    # 3. Call OpenAI API
+    # 3. Send to LLM
     try:
-        logger.info(f"Sending request to {LLM_MODEL} with {len(image_urls)} images...")
         response = client.chat.completions.create(
-            model=LLM_MODEL or "gpt-4o-mini", # Fallback if env var is empty
-            messages=messages,
+            model="gpt-4o-mini", # or "gpt-4o" if you have access
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content}
+            ],
             max_tokens=500
         )
         return response.choices[0].message.content
     except Exception as e:
-        logger.error(f"LLM Generation failed: {e}")
-        return "I encountered an error generating the response."
-
-if __name__ == "__main__":
-    # --- INTERNAL TEST ---
-    # We mock some retrieved items to test the LLM connection without running the full retriever
-    print("Testing Generator...")
-    
-    mock_items = [
-        {
-            "type": "text", 
-            "title": "Test Article", 
-            "content": "Artificial Intelligence is evolving rapidly in 2024.",
-            "image_path": None
-        }
-    ]
-    
-    answer = generate_answer("How is AI evolving?", mock_items)
-    print("\n--- LLM Answer ---")
-    print(answer)
+        return f"Error calling LLM: {str(e)}"
