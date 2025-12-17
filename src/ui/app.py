@@ -1,16 +1,16 @@
 import sys
 import os
+import math
+import time
 from pathlib import Path
 
-
+# --- FIX: Add Project Root to Path ---
 current_file = Path(__file__).resolve()
 project_root = current_file.parent.parent.parent
 sys.path.append(str(project_root))
 
 import streamlit as st
-import time
 
-# Import our RAG modules
 from src.rag.retriever import MultimodalRetriever
 from src.rag.generator import generate_answer
 
@@ -23,11 +23,20 @@ st.title("🤖 The Batch Multimodal RAG")
 st.markdown("Ask questions about **AI news**, and I'll find answers from *The Batch* articles and images.")
 
 # ----------------------
+# Session State Setup
+# ----------------------
+if 'search_results' not in st.session_state:
+    st.session_state.search_results = []
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 1
+if 'generated_answer' not in st.session_state:
+    st.session_state.generated_answer = ""
+
+# ----------------------
 # Load Resources (Cached)
 # ----------------------
 @st.cache_resource
 def load_retriever():
-    """Load the retriever only once to save time."""
     try:
         return MultimodalRetriever()
     except Exception as e:
@@ -36,77 +45,108 @@ def load_retriever():
 
 retriever = load_retriever()
 
-# Determine max limit (handle case where index might be empty or load failed)
+# Determine max limit safely
 max_items = retriever.total_items if retriever else 10
-if max_items < 1: max_items = 1 # Slider crashes if max < min
+if max_items < 1: max_items = 1
 
 # ----------------------
 # Sidebar
 # ----------------------
 with st.sidebar:
     st.header("Settings")
-    # Dynamic Slider: 1 to Total Items (Default: 3)
-    top_k = st.slider("Retrieval Count (Top K)", 1, max_items, min(5, max_items))
+    # Let user retrieve MANY items (e.g. 20 or 50) to see them in the UI
+    top_k = st.slider("Retrieval Context (Top K)", 1, max_items, min(10, max_items))
+    st.info(f"Database contains {max_items} items.")
     
-    st.info(f"Database contains {max_items} items.") # Helpful status text
-    st.info("This controls how many articles/images are sent to the LLM.")
+    st.divider()
+    
+    # Pagination Settings
+    items_per_page = st.number_input("Items per page", min_value=3, max_value=12, value=6, step=3)
 
 # ----------------------
-# Main Interaction
+# Main Search Interaction
 # ----------------------
-# We use a form so pressing "Enter" triggers the submit button
 with st.form(key="search_form"):
     query = st.text_input("Enter your question:", placeholder="e.g., What is new in robotics?")
     submit_button = st.form_submit_button("Search & Answer")
 
 if submit_button and query:
     if not retriever:
-        st.error("Retriever is not ready. Did you run the indexer?")
+        st.error("Retriever is not ready.")
         st.stop()
 
-    with st.spinner("🔍 Retrieving relevant context..."):
+    with st.spinner("🔍 Retrieving & Generating..."):
         # 1. Retrieve
         start_time = time.time()
-        retrieved_items = retriever.search(query, k=top_k)
+        results = retriever.search(query, k=top_k)
         retrieval_time = time.time() - start_time
+        
+        # 2. Store in Session State (Reset Page to 1)
+        st.session_state.search_results = results
+        st.session_state.current_page = 1
+        st.session_state.retrieval_time = retrieval_time
+        
+        # 3. Generate Answer (OPTIMIZATION: Only send Top 5 to LLM)
+        # This prevents 429 Rate Limit errors on Free Tier
+        llm_context = results[:5] 
+        st.session_state.generated_answer = generate_answer(query, llm_context)
 
-    # 2. Display Retrieved Items (Context)
-    with st.expander(f"📂 View Retrieved Context ({len(retrieved_items)} items)", expanded=False):
-        st.caption(f"Retrieval took {retrieval_time:.2f}s")
+# ----------------------
+# Display Results (Paginated)
+# ----------------------
+if st.session_state.search_results:
+    results = st.session_state.search_results
+    
+    # --- 1. Show the Answer First ---
+    st.markdown("### 📝 Answer")
+    st.markdown(st.session_state.generated_answer)
+    st.divider()
+
+    # --- 2. Pagination Logic ---
+    total_items = len(results)
+    total_pages = math.ceil(total_items / items_per_page)
+    
+    # Ensure current page is valid
+    if st.session_state.current_page > total_pages:
+        st.session_state.current_page = total_pages
+
+    start_idx = (st.session_state.current_page - 1) * items_per_page
+    end_idx = start_idx + items_per_page
+    current_batch = results[start_idx:end_idx]
+
+    # --- 3. Context Expandable with Pagination ---
+    with st.expander(f"📂 View Retrieved Context ({len(results)} items found)", expanded=True):
+        st.caption(f"Showing items {start_idx + 1}-{min(end_idx, total_items)} of {total_items} | Page {st.session_state.current_page}/{total_pages}")
         
-        # FIX: Use a fixed grid (3 columns) instead of len(retrieved_items)
-        num_cols = 3
-        cols = st.columns(num_cols)
-        
-        for idx, item in enumerate(retrieved_items):
-            # Calculate which column to put this item in (0, 1, or 2)
-            col_idx = idx % num_cols
-            
+        # Display Grid
+        cols = st.columns(3)
+        for idx, item in enumerate(current_batch):
+            col_idx = idx % 3
             with cols[col_idx]:
-                # Create a card-like container
                 with st.container(border=True):
-                    score = item.get('score', 0)
-                    # Truncate title if too long
+                    # Truncate title
                     title = item['title']
-                    if len(title) > 50: title = title[:50] + "..."
+                    if len(title) > 60: title = title[:60] + "..."
                     
                     st.markdown(f"**{title}**")
-                    st.caption(f"Score: {score:.4f}")
+                    st.caption(f"Score: {item.get('score', 0):.4f}")
                     
-                    # Show Image if available
                     if item['type'] == 'image' and item.get('image_path'):
+                        # FIX: Use 'use_container_width' to fix warning
                         st.image(item['image_path'], use_container_width=True)
-                    # Show Text snippet
                     else:
-                        st.text(f"{item.get('content', '')[:100]}...")
+                        st.text(f"{item.get('content', '')[:120]}...")
 
-    # 3. Generate Answer
-    with st.spinner("💡 Generating answer with GPT-4o..."):
-        answer = generate_answer(query, retrieved_items)
-
-    # 4. Show Output
-    st.markdown("### 📝 Answer")
-    st.markdown(answer)
-
-    # Success/Source info
-    st.success("Answer generated based on retrieved multimodal data.")
+        # Pagination Buttons
+        if total_pages > 1:
+            c1, c2, c3 = st.columns([1, 8, 1])
+            with c1:
+                if st.button("Previous"):
+                    if st.session_state.current_page > 1:
+                        st.session_state.current_page -= 1
+                        st.rerun()
+            with c3:
+                if st.button("Next"):
+                    if st.session_state.current_page < total_pages:
+                        st.session_state.current_page += 1
+                        st.rerun()
