@@ -14,20 +14,42 @@ def load_articles(file_path: Path) -> List[Dict]:
     return articles
 
 def clean_text(text: str) -> str:
-    """Simple cleaning: remove extra whitespace, newlines, and HTML remnants if any."""
+    """Simple cleaning: remove extra whitespace, newlines, and HTML remnants."""
     text = re.sub(r'\s+', ' ', text)  # collapse multiple whitespace/newlines
     text = text.strip()
     return text
 
+def create_chunks(text: str, chunk_size: int = 50) -> List[str]:
+    """
+    Splits text into chunks of ~50 words.
+    CLIP has a limit of 77 tokens (approx 50-60 words).
+    """
+    words = text.split()
+    chunks = []
+    
+    # Simple sliding window (non-overlapping for now to keep it simple)
+    for i in range(0, len(words), chunk_size):
+        chunk_words = words[i : i + chunk_size]
+        chunk_str = " ".join(chunk_words)
+        if len(chunk_str) > 10:  # Ignore tiny artifacts
+            chunks.append(chunk_str)
+            
+    return chunks
+
 def process_articles(articles: List[Dict]) -> List[Dict]:
-    """Clean and prepare articles."""
+    """Clean and chunk articles."""
     processed = []
     for art in articles:
-        text = clean_text(art["text"])
+        cleaned_text = clean_text(art["text"])
+        
+        # Create Chunks
+        chunks = create_chunks(cleaned_text, chunk_size=50)
+        
         processed.append({
             "url": art["url"],
             "title": art["title"],
-            "text": text,
+            "text": cleaned_text,       # Keep full text for reference
+            "chunks": chunks,           # NEW: List of searchable segments
             "top_image_url": art.get("top_image_url"),
             "local_image_path": art.get("local_image_path")
         })
@@ -42,8 +64,11 @@ if __name__ == "__main__":
     raw_file = RAW_DIR / "articles.json"
     processed_file = PROCESSED_DIR / "articles_clean.json"
 
-    articles = load_articles(raw_file)
-    articles_clean = process_articles(articles)
-    save_processed_articles(articles_clean, processed_file)
+    if not raw_file.exists():
+        print(f"Error: {raw_file} not found. Run the scraper first.")
+    else:
+        articles = load_articles(raw_file)
+        articles_clean = process_articles(articles)
+        save_processed_articles(articles_clean, processed_file)
 
-    print(f"Saved {len(articles_clean)} cleaned articles to {processed_file}")
+        print(f"Saved {len(articles_clean)} cleaned articles (with chunks) to {processed_file}")

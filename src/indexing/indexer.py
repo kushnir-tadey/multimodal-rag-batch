@@ -5,11 +5,10 @@ from typing import List, Dict
 
 import faiss
 import numpy as np
-import torch
 from PIL import Image
 from sentence_transformers import SentenceTransformer
 
-from src.config import PROCESSED_DIR, IMAGES_DIR, DATA_DIR, EMBEDDING_MODEL # Import EMBEDDING_MODEL
+from src.config import PROCESSED_DIR, DATA_DIR, EMBEDDING_MODEL
 
 # ----------------------
 # Configuration
@@ -17,7 +16,6 @@ from src.config import PROCESSED_DIR, IMAGES_DIR, DATA_DIR, EMBEDDING_MODEL # Im
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Use the model defined in config
 MODEL_NAME = EMBEDDING_MODEL 
 INDEX_DIR = DATA_DIR / "faiss_index"
 INDEX_DIR.mkdir(parents=True, exist_ok=True)
@@ -34,7 +32,7 @@ def build_multimodal_index():
     # 2. Load Processed Articles
     data_path = PROCESSED_DIR / "articles_clean.json"
     if not data_path.exists():
-        logger.error(f"File not found: {data_path}. Did you run the scraper/processor?")
+        logger.error(f"File not found: {data_path}. Run prepare_embeddings.py first.")
         return
         
     articles = load_data(data_path)
@@ -42,27 +40,32 @@ def build_multimodal_index():
     # 3. Prepare Data Lists
     text_chunks = []
     image_paths = []
-    metadata = []  # Stores mapping: Vector_ID -> {Type, Title, URL, Content}
+    metadata = []
     
     logger.info("Preparing data for embedding...")
     
     doc_id_counter = 0
     
     for art in articles:
-        # --- Process Text (Title + Content) ---
-        # We combine title and a snippet for a dense representation
-        # (For a real production system, you'd chunk the full text loop here)
-        combined_text = f"{art['title']}: {art['text'][:500]}" 
-        text_chunks.append(combined_text)
+        # --- Process Text Chunks (NEW LOGIC) ---
+        # If 'chunks' key exists, use it. Otherwise fallback to old method.
+        chunks = art.get("chunks", [art["text"][:500]])
         
-        metadata.append({
-            "id": doc_id_counter,
-            "type": "text",
-            "url": art["url"],
-            "title": art["title"],
-            "content": art["text"][:300] + "..." # Store preview
-        })
-        doc_id_counter += 1
+        for chunk in chunks:
+            # IMPORTANT: Prepend Title to every chunk!
+            # Context: "It is fast" -> "Qwen3-Next: It is fast"
+            combined_text = f"{art['title']}: {chunk}"
+            text_chunks.append(combined_text)
+            
+            metadata.append({
+                "id": doc_id_counter,
+                "type": "text",
+                "url": art["url"],
+                "title": art["title"],
+                "content": chunk, # The specific chunk text
+                "full_text_preview": art["text"][:200] # Optional: for context
+            })
+            doc_id_counter += 1
         
         # --- Process Image ---
         if art.get("local_image_path"):
@@ -82,29 +85,31 @@ def build_multimodal_index():
                 logger.warning(f"Image missing at {img_p}")
 
     # 4. Generate Embeddings
-    logger.info(f"Embedding {len(text_chunks)} text items...")
-    text_embeddings = model.encode(text_chunks, convert_to_numpy=True)
+    logger.info(f"Embedding {len(text_chunks)} text chunks...")
+    # Batch size can be increased if you have a GPU, but default is fine
+    text_embeddings = model.encode(text_chunks, convert_to_numpy=True, show_progress_bar=True)
     
-    logger.info(f"Embedding {len(image_paths)} images...")
-    # Load images for CLIP
-    images = [Image.open(p) for p in image_paths]
-    image_embeddings = model.encode(images, convert_to_numpy=True)
-    
-    # 5. Combine & Normalize
-    # FAISS works best with normalized vectors for Cosine Similarity (Inner Product)
-    all_embeddings = np.vstack([text_embeddings, image_embeddings])
+    if image_paths:
+        logger.info(f"Embedding {len(image_paths)} images...")
+        images = [Image.open(p) for p in image_paths]
+        image_embeddings = model.encode(images, convert_to_numpy=True, show_progress_bar=True)
+        
+        # 5. Combine & Normalize
+        all_embeddings = np.vstack([text_embeddings, image_embeddings])
+    else:
+        all_embeddings = text_embeddings
+
     faiss.normalize_L2(all_embeddings)
     
     # 6. Create FAISS Index
     dimension = all_embeddings.shape[1]
-    index = faiss.IndexFlatIP(dimension) # Inner Product (Cosine similarity if normalized)
+    index = faiss.IndexFlatIP(dimension)
     index.add(all_embeddings)
     
-    logger.info(f"Index built with {index.ntotal} vectors.")
+    logger.info(f"Index built with {index.ntotal} vectors (Chunks + Images).")
     
-    # 7. Save Index & Metadata
+    # 7. Save
     faiss.write_index(index, str(INDEX_DIR / "multimodal.index"))
-    
     with open(INDEX_DIR / "metadata.json", "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
         
