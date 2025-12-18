@@ -69,6 +69,18 @@ with st.sidebar:
     
     st.divider()
     
+    st.header("🤖 Model Behavior")
+    temperature = st.slider(
+        "Creativity (Temperature)", 
+        min_value=0.0, 
+        max_value=1.0, 
+        value=0.0, 
+        step=0.1,
+        help="0.0 = Precise/Factual. 1.0 = Creative/Random."
+    )
+
+    st.divider()
+    
     items_per_page = st.number_input("Grid items per page", min_value=3, max_value=12, value=6, step=3)
 
 # ----------------------
@@ -124,7 +136,7 @@ if submit_button and query:
         final_context = text_results[:75] + image_results[:3]
         
         try:
-            st.session_state.generated_answer = generate_answer(query, final_context)
+            st.session_state.generated_answer = generate_answer(query, final_context, temperature=temperature)
         except Exception as e:
             st.session_state.generated_answer = f"⚠️ Error generating answer: {str(e)}"
 

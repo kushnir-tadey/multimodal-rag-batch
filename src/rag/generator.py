@@ -6,7 +6,10 @@ import os
 # Ensure your .env file has OPENAI_API_KEY
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def generate_answer(query, retrieved_items):
+def generate_answer(query, retrieved_items, temperature=0.0):
+    #Adding debug print to test if the temperature works
+
+    print(f"DEBUG: Generating with Temperature: {temperature}")
     """
     Generates an answer using GPT-4o based on retrieved text and images.
     """
@@ -65,7 +68,8 @@ def generate_answer(query, retrieved_items):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content}
             ],
-            max_tokens=500
+            max_tokens=500,
+            temperature=temperature
         )
         return response.choices[0].message.content
     except Exception as e:
