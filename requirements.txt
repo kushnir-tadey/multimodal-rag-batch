@@ -32,3 +32,13 @@ tqdm
 python-dotenv
 
 openai
+
+# ----------------------
+# Analytics
+# ----------------------
+
+jupyterlab
+matplotlib
+seaborn
+pandas
+scikit-learn
