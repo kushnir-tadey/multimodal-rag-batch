@@ -33,6 +33,8 @@ python-dotenv
 
 openai
 
+langchain-text-splitters
+
 # ----------------------
 # Analytics
 # ----------------------
