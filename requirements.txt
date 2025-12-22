@@ -44,3 +44,4 @@ matplotlib
 seaborn
 pandas
 scikit-learn
+nltk
