@@ -4,13 +4,13 @@ A production-ready **Retrieval-Augmented Generation (RAG)** system that aggregat
 
 ## Key Features
 
-* ** Multimodal Search:** Retrieves both relevant text paragraphs and associated images for a query.
-* ** Recursive Chunking:** Uses advanced text splitting (NLTK/LangChain) to preserve semantic context.
-* ** Analytics Dashboard:**
+* **Multimodal Search:** Retrieves both relevant text paragraphs and associated images for a query.
+* **Recursive Chunking:** Uses advanced text splitting (NLTK/LangChain) to preserve semantic context.
+* **Analytics Dashboard:**
     * **N-Gram Analysis:** Visualizes top keywords, bi-grams, and tri-grams.
     * **Health Metrics:** Monitors chunk sizes and distribution.
-* ** Automated Pipeline:** Single-command processing from raw scraping to vector indexing.
-* ** GPT-4o-mini Integration:** Generates grounded, accurate answers citing specific news sources.
+* **Automated Pipeline:** Single-command processing from raw scraping to vector indexing.
+* **GPT-4o-mini Integration:** Generates grounded, accurate answers citing specific news sources.
 
 ---
 
@@ -20,7 +20,7 @@ The easiest way to run the app. No Python installation required.
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/kushnir-tadey/multimodal-rag-batch.git](https://github.com/kushnir-tadey/multimodal-rag-batch.git)
+    git clone https://github.com/kushnir-tadey/multimodal-rag-batch.git
     cd multimodal-rag-batch
     ```
 
@@ -30,7 +30,7 @@ The easiest way to run the app. No Python installation required.
     OPENAI_API_KEY="sk-..."
     ```
 
-3.  **Run:**
+3.  **Open Docker and run:**
     ```bash
     docker compose up --build
     ```
@@ -74,6 +74,47 @@ The system includes a production-grade **Analytics Dashboard** to monitor data h
 
 ---
 
+## Local Development (Manual Setup)
+
+If you prefer to run components individually without Docker, follow these steps:
+
+### 1. Environment Setup
+```bash
+# Create and activate virtual environment
+python -m venv venv
+# For Windows:
+venv\Scripts\activate
+# For Mac/Linux:
+source venv/bin/activate
+```
+
+# Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+2. Usage Pipeline
+Step 1: Scrape Data Fetches articles and downloads images to data/images/.
+
+```bash
+python -m src.scraping.batch_scraper
+```
+
+Step 2: Index Data Cleans text, embeds content, and builds the FAISS vector database.
+
+```bash
+python -m src.indexing.indexer
+```
+
+Step 3: Run the App 
+Launches the web interface.
+
+```bash
+streamlit run src/ui/app.py
+```
+
+---
+
 ##  Project Structure
 
 ```text
@@ -101,6 +142,7 @@ multimodal-rag-batch/
 ├── .env                    # API Keys (Git-ignored)
 ├── .gitignore              # Git ignore rules
 └── requirements.txt        # Python dependencies
+```
 
 ##  Technologies Used
 
