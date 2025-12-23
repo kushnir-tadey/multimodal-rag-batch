@@ -154,7 +154,7 @@ multimodal-rag-batch/
 * **Core Language:** Python 3.10+
 * **LLM & AI:** OpenAI GPT-4o-mini
 * **Vector Database:** FAISS (Facebook AI Similarity Search)
-* **Embeddings:** SentenceTransformers (HuggingFace `all-MiniLM-L6-v2`)
+* **Embeddings:** SentenceTransformers (clip-ViT-B-32)
 * **Web Framework:** Streamlit
 * **Data Processing:**
     * **LangChain:** Recursive Text Splitting
