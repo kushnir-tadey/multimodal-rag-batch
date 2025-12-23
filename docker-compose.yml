@@ -3,18 +3,26 @@ version: '3.8'
 services:
   rag-app:
     build: .
-    container_name: multimodal_rag_container
+    container_name: rag-container
     ports:
       - "8501:8501"
     volumes:
-      # 1. Map  local 'data' folder to the container's 'data' folder
+      - .:/app
       - ./data:/app/data
-      
-      # 2. Pass your local .env file securely
-      - ./.env:/app/.env
-    
-    # Automation Command:
-    # 1. Run the Indexer (updates FAISS)
-    # 2. THEN Run the Streamlit App
+    env_file:
+      - .env
+    # 👇 THIS IS THE MAGIC PART
     command: >
-      sh -c "python -m src.indexing.indexer && streamlit run src/ui/app.py --server.address=0.0.0.0 --browser.serverAddress=localhost"
+      sh -c "
+        if [ ! -f data/faiss_index/multimodal.index ]; then
+          echo 'First run detected! Initializing data...';
+          echo '1. Running Scraper...';
+          python -m src.scraping.batch_scraper;
+          echo '2. Running Indexer...';
+          python -m src.indexing.indexer;
+        else
+          echo 'Data found. Skipping initialization.';
+        fi &&
+        echo 'Launching Streamlit...' &&
+        streamlit run src/ui/app.py
+      "
