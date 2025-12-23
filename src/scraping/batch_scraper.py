@@ -4,11 +4,11 @@ from typing import List, Optional
 from pathlib import Path
 import json
 import time
-import random  # Added for random delays
+import random
 import logging
 import requests
 from bs4 import BeautifulSoup
-from newspaper import Article, Config # Added Config
+from newspaper import Article, Config
 from urllib.parse import urljoin
 
 from src.config import BATCH_ARCHIVE_URL, BASE_URL, RAW_DIR, IMAGES_DIR
@@ -89,7 +89,7 @@ def download_image(url: str, dest_dir: Path = IMAGES_DIR) -> Optional[Path]:
 # ----------------------
 def scrape_article(url: str) -> Optional[BatchArticle]:
     try:
-        # Pass headers to Newspaper so we look like a browser
+        # Pass headers to Newspaper so it looks like a browser
         config = Config()
         config.browser_user_agent = HEADERS["User-Agent"]
         config.request_timeout = 20

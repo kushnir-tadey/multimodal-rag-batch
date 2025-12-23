@@ -67,26 +67,3 @@ class MultimodalRetriever:
                 results.append(meta)
             
         return results
-
-if __name__ == "__main__":
-    # --- INTERNAL TEST ---
-    try:
-        retriever = MultimodalRetriever()
-        
-        # Test Query
-        test_query = "Artificial Intelligence"
-        print(f"\nScanning database for: '{test_query}'...")
-        
-        results = retriever.search(test_query, k=3)
-        
-        print(f"\n--- Search Results ---")
-        if not results:
-            print("No results found.")
-        
-        for r in results:
-            # Label as [IMG] or [TXT] so we know what we found
-            type_label = "[IMG]" if r['type'] == 'image' else "[TXT]"
-            print(f"{type_label} {r['title']} (Score: {r['score']:.4f})")
-            
-    except Exception as e:
-        print(f"Error during test: {e}")

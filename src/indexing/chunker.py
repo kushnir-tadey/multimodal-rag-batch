@@ -1,4 +1,3 @@
-# src/indexing/chunker.py
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 class Chunker:
@@ -28,6 +27,5 @@ class Chunker:
         if not text:
             return []
         
-        # LangChain returns "Document" objects; we extract the text content
         docs = self.splitter.create_documents([text])
         return [d.page_content for d in docs]

@@ -30,11 +30,11 @@ RAW_DATA_PATH = RAW_DIR / "articles.json"
 CLEAN_DATA_PATH = PROCESSED_DIR / "articles_clean.json"
 
 # ----------------------
-# Helper Functions (Ported from prepare_embeddings.py)
+# Helper Functions
 # ----------------------
 def load_data(file_path: Path) -> List[Dict]:
     if not file_path.exists():
-        logger.error(f"❌ File not found: {file_path}")
+        logger.error(f"File not found: {file_path}")
         return []
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -42,8 +42,8 @@ def load_data(file_path: Path) -> List[Dict]:
 def clean_text(text: str) -> str:
     """Simple cleaning: remove extra whitespace and newlines."""
     if not text: return ""
-    # Collapse multiple spaces/newlines into single spaces (optional, or keep \n for structure)
-    # For recursive chunking, we actually want to KEEP \n\n structure!
+    # Collapse multiple spaces/newlines into single spaces
+    # For recursive chunking, we actually want to KEEP \n\n structure
     # So we only strip mostly.
     text = text.strip()
     return text
@@ -52,7 +52,7 @@ def save_clean_data(articles: List[Dict], out_path: Path):
     """Saves the intermediate JSON for the Analytics Dashboard."""
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(articles, f, ensure_ascii=False, indent=2)
-    logger.info(f"✅ Saved cleaned data to {out_path}")
+    logger.info(f"Saved cleaned data to {out_path}")
 
 # ----------------------
 # Main Pipeline
@@ -86,7 +86,7 @@ def build_multimodal_index():
         # B. Chunk (Recursive)
         chunks = chunker.chunk_text(cleaned_text)
         
-        # C. Store for JSON (Analytics needs this!)
+        # C. Store for JSON
         processed_articles_for_json.append({
             "url": art.get("url"),
             "title": art.get("title"),
@@ -95,7 +95,7 @@ def build_multimodal_index():
             "local_image_path": art.get("local_image_path")
         })
 
-        # D. Prepare for Embedding (Index needs this)
+        # D. Prepare for Embedding
         for chunk in chunks:
             combined_text = f"{art.get('title', 'Unknown')}: {chunk}"
             text_chunks.append(combined_text)
@@ -125,7 +125,7 @@ def build_multimodal_index():
                 })
                 doc_id_counter += 1
 
-    # 4. Save Intermediate JSON (Crucial for Analytics)
+    # 4. Save Intermediate JSON
     save_clean_data(processed_articles_for_json, CLEAN_DATA_PATH)
 
     # 5. Embed & Index
@@ -155,7 +155,7 @@ def build_multimodal_index():
     with open(INDEX_DIR / "metadata.json", "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
         
-    logger.info(f"✅ Indexing complete! Saved to {INDEX_DIR}")
+    logger.info(f"Indexing complete! Saved to {INDEX_DIR}")
 
 if __name__ == "__main__":
     build_multimodal_index()

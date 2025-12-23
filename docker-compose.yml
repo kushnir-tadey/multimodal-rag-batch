@@ -7,8 +7,7 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      # 1. Map your local 'data' folder to the container's 'data' folder
-      # This ensures that scraped data persists even if you delete the container
+      # 1. Map  local 'data' folder to the container's 'data' folder
       - ./data:/app/data
       
       # 2. Pass your local .env file securely

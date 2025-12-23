@@ -103,7 +103,7 @@ if submit_button and query:
         
         # --- KEYWORD BOOSTING (Re-Ranking) ---
         # Vector search finds "concepts" (e.g., AI performance), but might miss specific names (e.g., Qwen3).
-        # We manually boost the score of any result that contains the exact keywords.
+        # Manually boost the score of any result that contains the exact keywords.
         query_terms = [term.lower() for term in query.split() if len(term) > 3] # Filter out short words
         
         for item in results:
@@ -151,9 +151,9 @@ if st.session_state.search_results:
     if st.session_state.generated_answer:
         st.markdown(st.session_state.generated_answer)
         
-        # --- NEW: Source Attribution ---
+        # --- Source Attribution ---
         # Identify unique articles used in the generation context
-        # We look at the top 75 chunks (the same ones sent to the LLM)
+        # Look at the top 75 chunks (the same ones sent to the LLM)
         used_chunks = [item for item in results if item['type'] == 'text'][:75]
         
         unique_sources = {}
@@ -171,7 +171,7 @@ if st.session_state.search_results:
         
         st.caption(f"Answer generated using top {len(used_chunks)} text chunks + top 3 images.")
     
-    # --- 2. Top Visual Matches (The "Show Me" Section) ---
+    # --- 2. Top Visual Matches ---
     # If we found images, show the best 3 immediately so the user sees them.
     top_images = [item for item in results if item['type'] == 'image'][:3]
     

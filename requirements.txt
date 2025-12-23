@@ -1,47 +1,25 @@
-# ----------------------
-# Web scraping
-# ----------------------
-requests
-beautifulsoup4
-newspaper3k
-lxml[html_clean]
+# Web App & UI
+streamlit
+python-dotenv
 
-# ----------------------
-# Text and image embeddings
-# ----------------------
+# AI & RAG
+openai
+langchain-text-splitters
 sentence-transformers
+faiss-cpu
 torch
 transformers
 Pillow
 
-# ----------------------
-# Multimodal retrieval / vector database
-# ----------------------
-faiss-cpu
-
-# ----------------------
-# Web UI
-# ----------------------
-streamlit
-
-# ----------------------
-# Utilities
-# ----------------------
-tqdm
-
-python-dotenv
-
-openai
-
-langchain-text-splitters
-
-# ----------------------
-# Analytics
-# ----------------------
-
-jupyterlab
-matplotlib
-seaborn
+# Data Processing & Analytics
 pandas
+numpy
 scikit-learn
 nltk
+matplotlib
+seaborn
+tqdm
+
+# Scraping
+requests
+beautifulsoup4

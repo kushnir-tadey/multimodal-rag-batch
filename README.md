@@ -1,20 +1,20 @@
-# 🧠 Multimodal AI News RAG
+# Multimodal AI News RAG
 
 A production-ready **Retrieval-Augmented Generation (RAG)** system that aggregates AI news, processes it with smart recursive chunking, and enables users to search across both text and images using natural language.
 
-## ✨ Key Features
+## Key Features
 
-* **🔍 Multimodal Search:** Retrieves both relevant text paragraphs and associated images for a query.
-* **🧠 Recursive Chunking:** Uses advanced text splitting (NLTK/LangChain) to preserve semantic context.
-* **📊 Analytics Dashboard:**
+* ** Multimodal Search:** Retrieves both relevant text paragraphs and associated images for a query.
+* ** Recursive Chunking:** Uses advanced text splitting (NLTK/LangChain) to preserve semantic context.
+* ** Analytics Dashboard:**
     * **N-Gram Analysis:** Visualizes top keywords, bi-grams, and tri-grams.
     * **Health Metrics:** Monitors chunk sizes and distribution.
-* **⚡ Automated Pipeline:** Single-command processing from raw scraping to vector indexing.
-* **🤖 GPT-4o-mini Integration:** Generates grounded, accurate answers citing specific news sources.
+* ** Automated Pipeline:** Single-command processing from raw scraping to vector indexing.
+* ** GPT-4o-mini Integration:** Generates grounded, accurate answers citing specific news sources.
 
 ---
 
-## 🚀 Quick Start (Docker) 🐳
+##  Quick Start (Docker) 
 
 The easiest way to run the app. No Python installation required.
 
@@ -38,7 +38,7 @@ The easiest way to run the app. No Python installation required.
 
 4.  **Open:** [http://localhost:8501](http://localhost:8501)
 
-## 🏗️ Architecture
+##  Architecture
 
 1.  **Data Collection (Scraper):**
     * Fetches the latest AI news articles and associated images.
@@ -60,7 +60,7 @@ The easiest way to run the app. No Python installation required.
 
 ---
 
-## 📊 Analytics & Evaluation
+##  Analytics & Evaluation
 
 The system includes a production-grade **Analytics Dashboard** to monitor data health and content trends.
 
@@ -74,7 +74,7 @@ The system includes a production-grade **Analytics Dashboard** to monitor data h
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 ```text
 multimodal-rag-batch/
@@ -102,7 +102,7 @@ multimodal-rag-batch/
 ├── .gitignore              # Git ignore rules
 └── requirements.txt        # Python dependencies
 
-## 🛠️ Technologies Used
+##  Technologies Used
 
 * **Core Language:** Python 3.10+
 * **LLM & AI:** OpenAI GPT-4o-mini
