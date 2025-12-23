@@ -24,10 +24,15 @@ The easiest way to run the app. No Python installation required.
     cd multimodal-rag-batch
     ```
 
-2.  **Add your API Key:**
-    Create a `.env` file in the root folder:
+2.  **Configure Environment:**
+    Create a `.env` file in the root folder. You must add your OpenAI key, but you can also configure the models used:
     ```ini
+    # Required
     OPENAI_API_KEY="sk-..."
+
+    # Optional (Defaults)
+    EMBEDDING_MODEL="clip-ViT-B-32"  # Multimodal model for Image+Text embedding
+    LLM_MODEL="gpt-4o-mini"          # Main LLM for answer generation
     ```
 
 3.  **Open Docker and run:**
