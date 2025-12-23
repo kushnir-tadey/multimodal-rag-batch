@@ -133,7 +133,7 @@ def build_multimodal_index():
                         "content": "[Image Associated with Article]"
                     })
                     doc_id_counter += 1
-                    logger.info(f"✅ Found Image: {clean_filename}")
+                    # logger.info(f"✅ Found Image: {clean_filename}")
                 except Exception as e:
                     logger.warning(f"Corrupt image {clean_filename}: {e}")
             else:
