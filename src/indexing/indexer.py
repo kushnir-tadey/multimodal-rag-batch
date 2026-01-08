@@ -1,180 +1,160 @@
 import json
 import logging
+import os
 import numpy as np
 import faiss
+import torch
+import open_clip
 from pathlib import Path
 from typing import List, Dict
 from PIL import Image
-from sentence_transformers import SentenceTransformer
+from openai import OpenAI
+from dotenv import load_dotenv
 
-# Custom Modules
+# --- IMPORTS FROM CONFIG ---
 from src.indexing.chunker import Chunker
-from src.config import PROCESSED_DIR, DATA_DIR, EMBEDDING_MODEL, RAW_DIR
+from src.config import (
+    RAW_DIR, 
+    DATA_DIR, 
+    INDEX_DIR, 
+    TEXT_INDEX_PATH, 
+    TEXT_METADATA_PATH, 
+    IMAGE_INDEX_PATH, 
+    IMAGE_METADATA_PATH,
+    TEXT_EMBEDDING_MODEL,
+    IMAGE_EMBEDDING_MODEL,
+    IMAGE_EMBEDDING_PRETRAINED
+)
 
-# ----------------------
-# Configuration
-# ----------------------
+load_dotenv()
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Config Paths
-MODEL_NAME = EMBEDDING_MODEL 
-INDEX_DIR = DATA_DIR / "faiss_index"
-INDEX_DIR.mkdir(parents=True, exist_ok=True)
-PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-
-# Input/Output Files
 RAW_DATA_PATH = RAW_DIR / "articles.json" 
-CLEAN_DATA_PATH = PROCESSED_DIR / "articles_clean.json"
 
-# ----------------------
-# Helper Functions
-# ----------------------
 def load_data(file_path: Path) -> List[Dict]:
     if not file_path.exists():
-        logger.error(f"File not found: {file_path}")
         return []
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 def clean_text(text: str) -> str:
-    """Simple cleaning: remove extra whitespace."""
     if not text: return ""
     return text.strip()
 
-def save_clean_data(articles: List[Dict], out_path: Path):
-    """Saves the intermediate JSON for the Analytics Dashboard."""
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(articles, f, ensure_ascii=False, indent=2)
-    logger.info(f"Saved cleaned data to {out_path}")
-
-# ----------------------
-# Main Pipeline
-# ----------------------
 def build_multimodal_index():
-    # 1. Load Raw Data
-    logger.info(f"Loading raw data from {RAW_DATA_PATH}...")
-    raw_articles = load_data(RAW_DATA_PATH)
-    if not raw_articles:
-        logger.warning("No articles found in raw data.")
-        return
-
-    # 2. Initialize Logic
-    logger.info(f"Loading model: {MODEL_NAME}")
-    model = SentenceTransformer(MODEL_NAME)
-    chunker = Chunker(chunk_size=800, chunk_overlap=100)
+    # 1. Setup Models using Config
+    logger.info("🔧 Initializing Hybrid Models from Config...")
     
-    # Buffers
-    processed_articles_for_json = []
+    # Text Brain
+    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    logger.info(f"   - Text Model: {TEXT_EMBEDDING_MODEL}")
+    
+    # Image Brain
+    logger.info(f"   - Image Model: {IMAGE_EMBEDDING_MODEL} ({IMAGE_EMBEDDING_PRETRAINED})")
+    siglip_model, _, siglip_preprocess = open_clip.create_model_and_transforms(
+        IMAGE_EMBEDDING_MODEL, 
+        pretrained=IMAGE_EMBEDDING_PRETRAINED
+    )
+    siglip_tokenizer = open_clip.get_tokenizer(IMAGE_EMBEDDING_MODEL)
+    
+    chunker = Chunker(chunk_size=1000, chunk_overlap=200)
+
+    # 2. Load Data
+    raw_articles = load_data(RAW_DATA_PATH)
+    logger.info(f"📚 Processing {len(raw_articles)} articles...")
+
     text_chunks = []
-    image_paths_to_embed = [] # Paths for the model
-    metadata = []
+    text_metadata = []
+    image_tensors = []
+    image_metadata = []
     doc_id_counter = 0
 
-    logger.info("Processing articles (Cleaning + Chunking + Image Path Fix)...")
-
-    # 3. Process Loop
+    # 3. Processing Loop
     for art in raw_articles:
-        # A. Clean
-        raw_text = art.get("text", "")
-        cleaned_text = clean_text(raw_text)
-        
-        # B. Chunk (Recursive)
+        # A. Process Text
+        cleaned_text = clean_text(art.get("text", ""))
         chunks = chunker.chunk_text(cleaned_text)
         
-        # C. Store for JSON (Analytics)
-        processed_articles_for_json.append({
-            "url": art.get("url"),
-            "title": art.get("title"),
-            "text": cleaned_text,
-            "chunks": chunks,
-            "image_url": art.get("top_image_url") or art.get("image_url")
-        })
-
-        # D. Prepare Text for Embedding
         for chunk in chunks:
-            combined_text = f"{art.get('title', 'Unknown')}: {chunk}"
-            text_chunks.append(combined_text)
-            
-            metadata.append({
+            text_chunks.append(chunk) 
+            text_metadata.append({
                 "id": doc_id_counter,
                 "type": "text",
-                "url": art.get("url", ""),
                 "title": art.get("title", ""),
-                "content": chunk,
-                "full_text_preview": cleaned_text[:200]
+                "url": art.get("url", ""),
+                "content": chunk
             })
             doc_id_counter += 1
-            
-        # E. Process Image (Path Normalization Fix)
-        # Check both keys just in case
-        raw_img_path = art.get("image_path") or art.get("local_image_path")
 
+        # B. Process Images
+        raw_img_path = art.get("image_path") or art.get("local_image_path")
         if raw_img_path:
             clean_filename = str(raw_img_path).replace("\\", "/").split("/")[-1]
-             
             clean_image_path = DATA_DIR / "images" / clean_filename
             
-            # 3. Verify existence
             if clean_image_path.exists():
                 try:
-                    # Validate image by opening it
                     img = Image.open(clean_image_path).convert("RGB")
+                    img_tensor = siglip_preprocess(img)
+                    image_tensors.append(img_tensor)
                     
-                    # Store valid path for batch embedding later
-                    image_paths_to_embed.append(str(clean_image_path))
-                    
-                    metadata.append({
+                    image_metadata.append({
                         "id": doc_id_counter,
                         "type": "image",
-                        "url": art.get("url", ""),
                         "title": art.get("title", ""),
+                        "url": art.get("url", ""),
                         "image_path": str(clean_image_path),
-                        "content": "[Image Associated with Article]"
+                        "content": "[Visual Content]"
                     })
                     doc_id_counter += 1
                 except Exception as e:
-                    logger.warning(f"Corrupt image {clean_filename}: {e}")
-            else:
-                logger.warning(f"Image missing at expected path: {clean_image_path}")
+                    logger.warning(f"Image error {clean_filename}: {e}")
 
-    # 4. Save Intermediate JSON
-    save_clean_data(processed_articles_for_json, CLEAN_DATA_PATH)
-
-    # 5. Embed & Index
-    if not text_chunks and not image_paths_to_embed:
-        logger.error("No content (text or images) to index!")
-        return
-
-    # Embed Text
-    logger.info(f"Embedding {len(text_chunks)} text chunks...")
-    text_embeddings = model.encode(text_chunks, convert_to_numpy=True, show_progress_bar=True)
-    all_embeddings = text_embeddings
-
-    # Embed Images (if any)
-    if image_paths_to_embed:
-        logger.info(f"Embedding {len(image_paths_to_embed)} images...")
-        images = [Image.open(p) for p in image_paths_to_embed]
-        image_embeddings = model.encode(images, convert_to_numpy=True, show_progress_bar=True)
+    # 4. Indexing (Text)
+    if text_chunks:
+        logger.info(f"🧠 Embedding {len(text_chunks)} text chunks...")
+        text_embeddings = []
+        batch_size = 100
+        for i in range(0, len(text_chunks), batch_size):
+            batch = text_chunks[i : i + batch_size]
+            response = openai_client.embeddings.create(input=batch, model=TEXT_EMBEDDING_MODEL)
+            batch_embs = [d.embedding for d in response.data]
+            text_embeddings.extend(batch_embs)
+            
+        text_emb_np = np.array(text_embeddings, dtype='float32')
+        faiss.normalize_L2(text_emb_np)
         
-        # Stack them: Text first, then Images
-        all_embeddings = np.vstack([text_embeddings, image_embeddings])
-    
-    # Normalize for Cosine Similarity
-    faiss.normalize_L2(all_embeddings)
-    
-    # Create Index
-    dimension = all_embeddings.shape[1]
-    index = faiss.IndexFlatIP(dimension)
-    index.add(all_embeddings)
-    
-    # 6. Save Index
-    faiss.write_index(index, str(INDEX_DIR / "multimodal.index"))
-    with open(INDEX_DIR / "metadata.json", "w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2)
+        d_text = text_emb_np.shape[1]
+        text_index = faiss.IndexFlatIP(d_text)
+        text_index.add(text_emb_np)
         
-    logger.info(f"Indexing complete! Total Vectors: {index.ntotal}")
-    logger.info(f"Saved index to {INDEX_DIR}")
+        # Use Config Paths
+        faiss.write_index(text_index, str(TEXT_INDEX_PATH))
+        with open(TEXT_METADATA_PATH, "w", encoding="utf-8") as f:
+            json.dump(text_metadata, f, indent=2)
+
+    # 5. Indexing (Images)
+    if image_tensors:
+        logger.info(f"👁️ Embedding {len(image_tensors)} images...")
+        image_batch = torch.stack(image_tensors)
+        with torch.no_grad(), torch.cuda.amp.autocast():
+            image_emb_torch = siglip_model.encode_image(image_batch)
+            
+        image_emb_np = image_emb_torch.cpu().numpy().astype('float32')
+        faiss.normalize_L2(image_emb_np)
+        
+        d_img = image_emb_np.shape[1]
+        image_index = faiss.IndexFlatIP(d_img)
+        image_index.add(image_emb_np)
+        
+        # Use Config Paths
+        faiss.write_index(image_index, str(IMAGE_INDEX_PATH))
+        with open(IMAGE_METADATA_PATH, "w", encoding="utf-8") as f:
+            json.dump(image_metadata, f, indent=2)
+
+    logger.info("✅ Hybrid Indexing Complete!")
 
 if __name__ == "__main__":
     build_multimodal_index()

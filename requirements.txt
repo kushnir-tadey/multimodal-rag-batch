@@ -10,6 +10,7 @@ faiss-cpu
 torch
 transformers
 Pillow
+open-clip-torch
 
 # Data Processing & Analytics
 pandas
