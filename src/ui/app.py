@@ -2,6 +2,7 @@ import sys
 import os
 import math
 import time
+import re
 from pathlib import Path
 
 # --- Path Setup ---
@@ -21,6 +22,28 @@ st.set_page_config(page_title="The Batch RAG", layout="wide")
 
 st.title("🤖 The Batch Multimodal RAG")
 st.markdown("Ask questions about **AI news**, and I'll find answers from *The Batch* articles and images.")
+
+# ----------------------
+# Helper Function: Clickable Citations
+# ----------------------
+def make_citations_clickable(text, documents):
+    """
+    Finds '[1]', '[2]' in the text and replaces them with markdown links 
+    like '[[1]](http://link_to_source)'.
+    """
+    def replace_match(match):
+        try:
+            doc_index = int(match.group(1)) - 1  # Convert '1' to index 0
+            if 0 <= doc_index < len(documents):
+                url = documents[doc_index].get('url', '#')
+                # Return markdown link: [[1]](http://google.com)
+                return f"[[{match.group(1)}]]({url})"
+        except:
+            pass
+        return match.group(0)
+
+    # Regex to find [1], [2], [10], etc.
+    return re.sub(r'\[(\d+)\]', replace_match, text)
 
 # ----------------------
 # Session State Setup
@@ -102,37 +125,26 @@ if submit_button and query:
         retrieval_time = time.time() - start_time
         
         # --- KEYWORD BOOSTING (Re-Ranking) ---
-        # Vector search finds "concepts" (e.g., AI performance), but might miss specific names (e.g., Qwen3).
-        # Manually boost the score of any result that contains the exact keywords.
-        query_terms = [term.lower() for term in query.split() if len(term) > 3] # Filter out short words
+        query_terms = [term.lower() for term in query.split() if len(term) > 3] 
         
         for item in results:
-            # Combine title and content to check for keywords
             text_to_check = (item.get('title', '') + " " + item.get('content', '')).lower()
-            
             for term in query_terms:
                 if term in text_to_check:
-                    # Add a significant boost (0.2) to push these items to the top
                     item['score'] = item.get('score', 0) + 0.2
         
-        # Re-sort the results based on the new boosted scores
         results.sort(key=lambda x: x['score'], reverse=True)
-        # -------------------------------------
-
+        
         # 2. Store in Session State
         st.session_state.search_results = results
         st.session_state.current_page = 1
         st.session_state.retrieval_time = retrieval_time
         
-        # 3. Generate Answer (SMART SPLIT LIMIT)
-        # Strategy: Send LOTS of text (to find deep stats) but FEW images (to prevent timeouts).
-        
-        # Separate the results by type
+        # 3. Generate Answer
         text_results = [item for item in results if item['type'] == 'text']
         image_results = [item for item in results if item['type'] == 'image']
         
-        # Limit Text to 75 chunks (~3500 words) -> Deep Context
-        # Limit Images to 3 items -> Safe Payload size
+        # Use top 75 chunks for context
         final_context = text_results[:75] + image_results[:3]
         
         try:
@@ -149,30 +161,26 @@ if st.session_state.search_results:
     # --- 1. Answer Section ---
     st.markdown("### 📝 Answer")
     if st.session_state.generated_answer:
-        st.markdown(st.session_state.generated_answer)
         
-        # --- Source Attribution ---
-        # Identify unique articles used in the generation context
-        # Look at the top 75 chunks (the same ones sent to the LLM)
-        used_chunks = [item for item in results if item['type'] == 'text'][:75]
+        # A. Make Citations Clickable (The Perplexity Style)
+        # We need the exact list of text docs passed to the LLM to map [1] -> URL
+        used_text_docs = [item for item in results if item['type'] == 'text'][:75]
         
-        unique_sources = {}
-        for item in used_chunks:
-            title = item.get('title', 'Unknown Article')
-            url = item.get('url', '#')
-            # Only add if we haven't seen this URL yet
-            if url and url not in unique_sources:
-                unique_sources[url] = title
+        clickable_answer = make_citations_clickable(st.session_state.generated_answer, used_text_docs)
+        st.markdown(clickable_answer)
         
-        if unique_sources:
-            with st.expander("📚 Sources / References", expanded=False):
-                for url, title in unique_sources.items():
-                    st.markdown(f"- [{title}]({url})")
-        
-        st.caption(f"Answer generated using top {len(used_chunks)} text chunks + top 3 images.")
+        # B. Source Details (Bottom Expanders)
+        if used_text_docs:
+            with st.expander("📚 Sources / References (Details)", expanded=False):
+                st.caption("Detailed list of sources used in this answer:")
+                for i, item in enumerate(used_text_docs, 1):
+                    title = item.get('title', 'Unknown Article')
+                    url = item.get('url', '#')
+                    st.markdown(f"**[{i}]** [{title}]({url})")
+                    
+        st.caption(f"Answer generated using top {len(used_text_docs)} text chunks + top 3 images.")
     
     # --- 2. Top Visual Matches ---
-    # If we found images, show the best 3 immediately so the user sees them.
     top_images = [item for item in results if item['type'] == 'image'][:3]
     
     if top_images:
@@ -181,7 +189,6 @@ if st.session_state.search_results:
         img_cols = st.columns(3)
         for i, img_item in enumerate(top_images):
             with img_cols[i]:
-                # Use container to align captions nicely
                 with st.container(border=True):
                     st.image(img_item['image_path'], width="stretch")
                     st.caption(img_item.get('title', '')[:60] + "...")
@@ -199,7 +206,6 @@ if st.session_state.search_results:
     end_idx = start_idx + items_per_page
     current_batch = results[start_idx:end_idx]
 
-    # Use an expander so the full grid is optional
     with st.expander(f"📂 View All Retrieved Context ({len(results)} items found)", expanded=False):
         st.caption(f"Page {st.session_state.current_page}/{total_pages} | Retrieval: {st.session_state.retrieval_time:.4f}s")
         
@@ -209,17 +215,14 @@ if st.session_state.search_results:
             with cols[col_idx]:
                 with st.container(border=True):
                     score = item.get('score', 0)
-                    # Truncate title if too long
                     title = item['title']
                     if len(title) > 50: title = title[:50] + "..."
                     
                     st.markdown(f"**{title}**")
                     st.caption(f"Score: {score:.4f}")
                     
-                    # Show Image if available
                     if item['type'] == 'image' and item.get('image_path'):
                         st.image(item['image_path'], use_container_width=True)
-                    # Show Text snippet
                     else:
                         st.text(f"{item.get('content', '')[:120]}...")
 

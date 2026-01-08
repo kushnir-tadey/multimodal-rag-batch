@@ -2,72 +2,88 @@ import base64
 from openai import OpenAI
 import os
 
-# Initialize OpenAI Client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# --- KEY CHANGE: INLINE CITATION RULES ---
+SYSTEM_PROMPT = """
+You are a Senior AI News Analyst. Your task is to synthesize technical answers based STRICTLY on the provided retrieved context.
+
+### 1. INPUT STRUCTURE
+The user will provide:
+- **Query:** The specific question.
+- **Context:** A list of numbered text chunks (e.g., [1], [2]) and images.
+
+### 2. STRICT CITATION RULES (CRITICAL)
+- **Inline Citations:** You must cite the source **immediately** after the specific sentence or fact is stated. 
+- **Format:** Use the format `[ID]`.
+- **Bad Example:** "Qwen is fast and uses 512 experts. [1][2]" (Do NOT do this).
+- **Good Example:** "Qwen uses 512 experts [1]. It also uses Gated DeltaNet layers for speed [2]."
+- **Grouping:** If a sentence combines facts from multiple sources, cite both: "Qwen is fast and efficient [1][2]."
+
+### 3. STRICT GUIDELINES
+- **Grounding:** Answer ONLY using the provided context.
+- **Refusal:** If the context is missing info, state "I cannot answer this."
+
+### 4. IMAGE HANDLING
+- Only mention images if they are technically relevant.
+- Format: "*(See image 1)*".
+
+### 5. OUTPUT FORMAT
+- Use clean Markdown.
+- Use bullet points for lists.
+"""
+
 def generate_answer(query, retrieved_items, temperature=0.0):
-    #Adding debug print to test if the temperature works
-
     print(f"DEBUG: Generating with Temperature: {temperature}")
-    """
-    Generates an answer using GPT-4o based on retrieved text and images.
-    """
-    # 1. Prepare the System Prompt
-    # We explicitly tell the LLM to prioritize text and ignore irrelevant images.
-    system_prompt = """
-    You are a helpful and knowledgeable AI News Assistant. 
-    You have access to a database of retrieved articles (text chunks) and images.
 
-    CORE INSTRUCTIONS:
-    1. **PRIORITY:** Your primary goal is to answer the User's Query using the provided TEXT chunks. 
-    2. **IMAGES:** You will see images in the context. 
-       - ONLY refer to them if they are directly relevant to the question (e.g., if the user asks for a chart, or the image shows the specific robot discussed).
-       - If the images are generic stock photos, cartoons, or unrelated to the specific topic (like "Qwen3"), **IGNORE THEM**. Do not describe them.
-    3. **FALLBACK:** If the text chunks contain the answer, use them! Do not say "I don't know" just because the images are irrelevant.
-    4. **Formatting:** Use Markdown. Be concise but detailed.
-    """
-
-    # 2. Build the Message Payload
-    # Combine text strings and image blobs into the format GPT-4o expects.
-    user_content = []
+    text_context = "### RETRIEVED TEXT CONTEXT\n"
+    image_payloads = []
     
-    # Add the Query text first
-    user_content.append({"type": "text", "text": f"User Question: {query}\n\nRetrieved Context:"})
+    text_items = [item for item in retrieved_items if item['type'] == 'text']
+    image_items = [item for item in retrieved_items if item['type'] == 'image']
 
-    # Process items
-    for item in retrieved_items:
-        # A. Text Item
-        if item['type'] == 'text':
-            snippet = f"\n- [Source: {item['title']}] {item['content']}"
-            user_content.append({"type": "text", "text": snippet})
-        
-        # B. Image Item
-        elif item['type'] == 'image' and item.get('image_path'):
+    if not text_items:
+        text_context += "No text articles found.\n"
+    else:
+        for i, item in enumerate(text_items):
+            # We map the Index (i+1) to the content.
+            # The LLM sees "[1]" and associates it with this text.
+            text_context += f"\n--- DOCUMENT [{i+1}] ---\nSource Title: {item['title']}\nContent: {item['content']}\n"
+
+    # Process Images (Convert to base64)
+    for item in image_items:
+        if item.get('image_path'):
             try:
-                # Read the local file and encode it to base64
                 with open(item['image_path'], "rb") as image_file:
                     base64_image = base64.b64encode(image_file.read()).decode('utf-8')
-                
-                # Add image to payload
-                user_content.append({
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{base64_image}",
-                        "detail": "low"
-                    }
-                })
+                    image_payloads.append({
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                            "detail": "low"
+                        }
+                    })
             except Exception as e:
                 print(f"Error loading image {item['image_path']}: {e}")
 
-    # 3. Send to LLM
+    final_user_text = f"""
+{text_context}
+
+### USER QUERY
+{query}
+"""
+    
+    user_message_content = [{"type": "text", "text": final_user_text}]
+    user_message_content.extend(image_payloads)
+
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content}
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_message_content}
             ],
-            max_tokens=500,
+            max_tokens=600, # Increased slightly to allow for citations
             temperature=temperature
         )
         return response.choices[0].message.content
