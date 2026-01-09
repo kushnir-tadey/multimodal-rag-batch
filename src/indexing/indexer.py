@@ -45,13 +45,13 @@ def clean_text(text: str) -> str:
 
 def build_multimodal_index():
     # 1. Setup Models using Config
-    logger.info("🔧 Initializing Hybrid Models from Config...")
+    logger.info("Initializing Hybrid Models from Config...")
     
-    # Text Brain
+    # Text
     openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     logger.info(f"   - Text Model: {TEXT_EMBEDDING_MODEL}")
     
-    # Image Brain
+    # Image
     logger.info(f"   - Image Model: {IMAGE_EMBEDDING_MODEL} ({IMAGE_EMBEDDING_PRETRAINED})")
     siglip_model, _, siglip_preprocess = open_clip.create_model_and_transforms(
         IMAGE_EMBEDDING_MODEL, 
@@ -114,7 +114,7 @@ def build_multimodal_index():
 
     # 4. Indexing (Text)
     if text_chunks:
-        logger.info(f"🧠 Embedding {len(text_chunks)} text chunks...")
+        logger.info(f"Embedding {len(text_chunks)} text chunks...")
         text_embeddings = []
         batch_size = 100
         for i in range(0, len(text_chunks), batch_size):
@@ -137,7 +137,7 @@ def build_multimodal_index():
 
     # 5. Indexing (Images)
     if image_tensors:
-        logger.info(f"👁️ Embedding {len(image_tensors)} images...")
+        logger.info(f"Embedding {len(image_tensors)} images...")
         image_batch = torch.stack(image_tensors)
         with torch.no_grad(), torch.cuda.amp.autocast():
             image_emb_torch = siglip_model.encode_image(image_batch)
@@ -154,7 +154,7 @@ def build_multimodal_index():
         with open(IMAGE_METADATA_PATH, "w", encoding="utf-8") as f:
             json.dump(image_metadata, f, indent=2)
 
-    logger.info("✅ Hybrid Indexing Complete!")
+    logger.info("Hybrid Indexing Complete")
 
 if __name__ == "__main__":
     build_multimodal_index()

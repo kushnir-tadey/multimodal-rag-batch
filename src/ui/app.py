@@ -24,29 +24,66 @@ st.title("🤖 The Batch Multimodal RAG")
 st.markdown("Ask questions about **AI news**, and I'll find answers from *The Batch* articles and images.")
 
 # ----------------------
-# Helper Function: Clickable Citations
+# Helper: De-Duplicate & Aggregate
 # ----------------------
-def make_citations_clickable(text, documents):
+def process_results_for_llm(results):
     """
-    Finds '[1]', '[2]' in the text and replaces them with markdown links 
-    like '[[1]](http://link_to_source)'.
+    1. Identify Unique Docs.
+    2. AGGREGATE chunks from the same doc into one big text block.
     """
+    unique_docs_map = {} # Url -> {id, title, chunks}
+    unique_docs_list = [] # For UI display
+    
+    text_results = [item for item in results if item['type'] == 'text']
+    
+    for item in text_results[:75]:
+        url = item.get('url', '#')
+        title = item.get('title', 'Unknown Title')
+        content = item.get('content', '')
+        
+        if url not in unique_docs_map:
+            new_id = len(unique_docs_list) + 1
+            unique_docs_map[url] = {
+                'id': new_id,
+                'title': title,
+                'url': url,
+                'content_parts': []
+            }
+            unique_docs_list.append({'id': new_id, 'title': title, 'url': url})
+            
+        unique_docs_map[url]['content_parts'].append(content)
+
+    # The LLM will receive 1 item per unique URL.
+    llm_context = []
+    for url, data in unique_docs_map.items():
+        # Combine all chunks into one text
+        full_text = "\n...\n".join(data['content_parts'])
+        llm_context.append({
+            "type": "text",
+            "id": data['id'],       
+            "title": data['title'],
+            "content": full_text    
+        })
+
+    return unique_docs_list, llm_context
+
+# ----------------------
+# Helper: Clickable Citations
+# ----------------------
+def make_citations_clickable(text, unique_docs):
     def replace_match(match):
         try:
-            doc_index = int(match.group(1)) - 1  # Convert '1' to index 0
-            if 0 <= doc_index < len(documents):
-                url = documents[doc_index].get('url', '#')
-                # Return markdown link: [[1]](http://google.com)
-                return f"[[{match.group(1)}]]({url})"
+            doc_id = int(match.group(1))
+            doc = next((d for d in unique_docs if d['id'] == doc_id), None)
+            if doc:
+                return f"[[{doc_id}]]({doc['url']})"
         except:
             pass
         return match.group(0)
-
-    # Regex to find [1], [2], [10], etc.
     return re.sub(r'\[(\d+)\]', replace_match, text)
 
 # ----------------------
-# Session State Setup
+# Session State
 # ----------------------
 if 'search_results' not in st.session_state:
     st.session_state.search_results = []
@@ -54,12 +91,9 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = 1
 if 'generated_answer' not in st.session_state:
     st.session_state.generated_answer = ""
-if 'retrieval_time' not in st.session_state:
-    st.session_state.retrieval_time = 0.0
+if 'unique_docs' not in st.session_state: 
+    st.session_state.unique_docs = []
 
-# ----------------------
-# Load Resources (Cached)
-# ----------------------
 @st.cache_resource
 def load_retriever():
     try:
@@ -68,174 +102,120 @@ def load_retriever():
         return None
 
 retriever = load_retriever()
-
-# Determine max limit safely
 max_items = retriever.total_items if retriever else 10
-if max_items < 1: max_items = 1
 
 # ----------------------
 # Sidebar
 # ----------------------
 with st.sidebar:
     st.header("Settings")
-    
-    # Recall Control
-    slider_max = min(max_items, 100) 
-    default_k = min(20, slider_max)
-    
-    top_k = st.slider("Retrieval Context (Top K)", 1, slider_max, default_k)
+    slider_max = min(max_items, 100) if max_items > 0 else 10
+    top_k = st.slider("Retrieval Context (Top K)", 1, slider_max, min(20, slider_max))
     
     if retriever:
-        st.info(f"📚 Database contains {max_items} searchable chunks/images.")
+        st.info(f"📚 Database contains {max_items} searchable items.")
     else:
-        st.error("⚠️ Index not found. Please run `python -m src.indexing.indexer`.")
-    
+        st.error("⚠️ Index not found.")
+        
     st.divider()
-    
-    st.header("🤖 Model Behavior")
-    temperature = st.slider(
-        "Creativity (Temperature)", 
-        min_value=0.0, 
-        max_value=1.0, 
-        value=0.0, 
-        step=0.1,
-        help="0.0 = Precise/Factual. 1.0 = Creative/Random."
-    )
-
-    st.divider()
-    
-    items_per_page = st.number_input("Grid items per page", min_value=3, max_value=12, value=6, step=3)
+    temperature = st.slider("Creativity", 0.0, 1.0, 0.0, 0.1)
+    items_per_page = st.number_input("Grid items per page", 3, 12, 6)
 
 # ----------------------
-# Main Search Interaction
+# Main Search
 # ----------------------
-with st.form(key="search_form"):
+with st.form("search_form"):
     query = st.text_input("Enter your question:", placeholder="e.g., What is new in robotics?")
     submit_button = st.form_submit_button("Search & Answer")
 
 if submit_button and query:
     if not retriever:
-        st.error("❌ Retriever is not ready.")
+        st.error("Retriever not ready.")
         st.stop()
 
     with st.spinner("🔍 Retrieving & Generating..."):
-        # 1. Retrieve
-        start_time = time.time()
+        # 1. Search
         results = retriever.search(query, k=top_k)
-        retrieval_time = time.time() - start_time
         
-        # --- KEYWORD BOOSTING (Re-Ranking) ---
-        query_terms = [term.lower() for term in query.split() if len(term) > 3] 
-        
+        # Keyword Boost
+        query_terms = [t.lower() for t in query.split() if len(t) > 3]
         for item in results:
-            text_to_check = (item.get('title', '') + " " + item.get('content', '')).lower()
-            for term in query_terms:
-                if term in text_to_check:
-                    item['score'] = item.get('score', 0) + 0.2
-        
+            content = (item.get('title', '') + " " + item.get('content', '')).lower()
+            if any(t in content for t in query_terms):
+                item['score'] = item.get('score', 0) + 0.2
         results.sort(key=lambda x: x['score'], reverse=True)
         
-        # 2. Store in Session State
+        # 2. Process for LLM (Aggregation Logic)
+        unique_docs, text_context_for_llm = process_results_for_llm(results)
+        
+        # 3. Add Images
+        image_results = [item for item in results if item['type'] == 'image'][:3]
+        final_context = text_context_for_llm + image_results
+
+        # 4. Generate
+        ans = generate_answer(query, final_context, temperature=temperature)
+        
+        # 5. Save State
         st.session_state.search_results = results
+        st.session_state.generated_answer = ans
+        st.session_state.unique_docs = unique_docs
         st.session_state.current_page = 1
-        st.session_state.retrieval_time = retrieval_time
-        
-        # 3. Generate Answer
-        text_results = [item for item in results if item['type'] == 'text']
-        image_results = [item for item in results if item['type'] == 'image']
-        
-        # Use top 75 chunks for context
-        final_context = text_results[:75] + image_results[:3]
-        
-        try:
-            st.session_state.generated_answer = generate_answer(query, final_context, temperature=temperature)
-        except Exception as e:
-            st.session_state.generated_answer = f"⚠️ Error generating answer: {str(e)}"
 
 # ----------------------
 # Display Results
 # ----------------------
 if st.session_state.search_results:
-    results = st.session_state.search_results
-    
-    # --- 1. Answer Section ---
+    # 1. Answer
     st.markdown("### 📝 Answer")
     if st.session_state.generated_answer:
-        
-        # A. Make Citations Clickable (The Perplexity Style)
-        # We need the exact list of text docs passed to the LLM to map [1] -> URL
-        used_text_docs = [item for item in results if item['type'] == 'text'][:75]
-        
-        clickable_answer = make_citations_clickable(st.session_state.generated_answer, used_text_docs)
-        st.markdown(clickable_answer)
-        
-        # B. Source Details (Bottom Expanders)
-        if used_text_docs:
-            with st.expander("📚 Sources / References (Details)", expanded=False):
-                st.caption("Detailed list of sources used in this answer:")
-                for i, item in enumerate(used_text_docs, 1):
-                    title = item.get('title', 'Unknown Article')
-                    url = item.get('url', '#')
-                    st.markdown(f"**[{i}]** [{title}]({url})")
-                    
-        st.caption(f"Answer generated using top {len(used_text_docs)} text chunks + top 3 images.")
-    
-    # --- 2. Top Visual Matches ---
-    top_images = [item for item in results if item['type'] == 'image'][:3]
-    
+        final_ans = make_citations_clickable(st.session_state.generated_answer, st.session_state.unique_docs)
+        st.markdown(final_ans)
+
+        # 2. Unique Sources
+        if st.session_state.unique_docs:
+            with st.expander("📚 Sources / References", expanded=False):
+                st.caption("Detailed list of unique articles used:")
+                for doc in st.session_state.unique_docs:
+                    st.markdown(f"**[{doc['id']}]** [{doc['title']}]({doc['url']})")
+
+    # 3. Images
+    top_images = [item for item in st.session_state.search_results if item['type'] == 'image'][:3]
     if top_images:
         st.divider()
         st.markdown("### 🖼️ Relevant Images")
-        img_cols = st.columns(3)
-        for i, img_item in enumerate(top_images):
-            with img_cols[i]:
-                with st.container(border=True):
-                    st.image(img_item['image_path'], width="stretch")
-                    st.caption(img_item.get('title', '')[:60] + "...")
+        cols = st.columns(3)
+        for i, img in enumerate(top_images):
+            with cols[i]:
+                st.image(img['image_path'], width="stretch")
 
     st.divider()
-
-    # --- 3. Pagination & Grid Logic ---
+    
+    # 4. Grid (Chunks)
+    results = st.session_state.search_results
     total_items = len(results)
     total_pages = math.ceil(total_items / items_per_page)
     
-    if st.session_state.current_page > total_pages:
-        st.session_state.current_page = total_pages
+    if st.session_state.current_page > total_pages: st.session_state.current_page = total_pages
+    start = (st.session_state.current_page - 1) * items_per_page
+    batch = results[start : start + items_per_page]
 
-    start_idx = (st.session_state.current_page - 1) * items_per_page
-    end_idx = start_idx + items_per_page
-    current_batch = results[start_idx:end_idx]
-
-    with st.expander(f"📂 View All Retrieved Context ({len(results)} items found)", expanded=False):
-        st.caption(f"Page {st.session_state.current_page}/{total_pages} | Retrieval: {st.session_state.retrieval_time:.4f}s")
-        
+    with st.expander(f"📂 View All Retrieved Context ({len(results)} items)", expanded=False):
         cols = st.columns(3)
-        for idx, item in enumerate(current_batch):
-            col_idx = idx % 3
-            with cols[col_idx]:
+        for idx, item in enumerate(batch):
+            with cols[idx % 3]:
                 with st.container(border=True):
-                    score = item.get('score', 0)
-                    title = item['title']
-                    if len(title) > 50: title = title[:50] + "..."
-                    
-                    st.markdown(f"**{title}**")
-                    st.caption(f"Score: {score:.4f}")
-                    
-                    if item['type'] == 'image' and item.get('image_path'):
-                        st.image(item['image_path'], use_container_width=True)
+                    st.markdown(f"**{item.get('title', '')[:50]}**")
+                    st.caption(f"Score: {item.get('score', 0):.4f}")
+                    if item['type'] == 'image':
+                        st.image(item['image_path'])
                     else:
-                        st.text(f"{item.get('content', '')[:120]}...")
-
-        # Pagination Buttons
+                        st.text(f"{item['content'][:100]}...")
+                        
         if total_pages > 1:
-            c1, c2, c3 = st.columns([1, 8, 1])
-            with c1:
-                if st.button("Previous"):
-                    if st.session_state.current_page > 1:
-                        st.session_state.current_page -= 1
-                        st.rerun()
-            with c3:
-                if st.button("Next"):
-                    if st.session_state.current_page < total_pages:
-                        st.session_state.current_page += 1
-                        st.rerun()
+            c1, _, c2 = st.columns([1, 8, 1])
+            if c1.button("Prev") and st.session_state.current_page > 1:
+                st.session_state.current_page -= 1
+                st.rerun()
+            if c2.button("Next") and st.session_state.current_page < total_pages:
+                st.session_state.current_page += 1
+                st.rerun()

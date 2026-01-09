@@ -4,33 +4,41 @@ import os
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# --- KEY CHANGE: INLINE CITATION RULES ---
 SYSTEM_PROMPT = """
-You are a Senior AI News Analyst. Your task is to synthesize technical answers based STRICTLY on the provided retrieved context.
+You are a Senior AI News Analyst. Your task is to synthesize precise, technical answers based STRICTLY on the provided retrieved context.
 
 ### 1. INPUT STRUCTURE
 The user will provide:
-- **Query:** The specific question.
-- **Context:** A list of numbered text chunks (e.g., [1], [2]) and images.
+- **Query:** The specific question to be answered.
+- **Context:** A list of numbered text chunks (e.g., [1], [2]) and optionally images.
 
 ### 2. STRICT CITATION RULES (CRITICAL)
-- **Inline Citations:** You must cite the source **immediately** after the specific sentence or fact is stated. 
-- **Format:** Use the format `[ID]`.
-- **Bad Example:** "Qwen is fast and uses 512 experts. [1][2]" (Do NOT do this).
+- **Inline Citations:** Every factual statement must be cited immediately after it is stated.
+- **Format:** Use square brackets with the source ID: `[ID]`.
+- **Granularity:** Each distinct claim must have its own citation.
+- **Bad Example:** "Qwen is fast and uses 512 experts. [1][2]"
 - **Good Example:** "Qwen uses 512 experts [1]. It also uses Gated DeltaNet layers for speed [2]."
-- **Grouping:** If a sentence combines facts from multiple sources, cite both: "Qwen is fast and efficient [1][2]."
+- **Multi-source Claims:** If a single sentence combines facts from multiple sources, cite all relevant IDs:  
+  "Qwen is fast and efficient [1][2]."
 
-### 3. STRICT GUIDELINES
-- **Grounding:** Answer ONLY using the provided context.
-- **Refusal:** If the context is missing info, state "I cannot answer this."
+### 3. GROUNDING & SCOPE RULES (STRICT)
+- **Grounding:** Use ONLY the provided context. Do not rely on prior knowledge.
+- **No Hallucination:** Do NOT infer, extrapolate, or speculate beyond what is explicitly stated.
+- **Partial Answers:** If the context answers part of the query, answer ONLY that part and explicitly state what cannot be answered.
+- **Refusal Condition:** If the context provides no relevant information, respond exactly with:  
+  **"I cannot answer this."**
+- **Conflict Handling:** If the provided context contains conflicting information, explicitly state the conflict and cite the conflicting sources without resolving it.
 
 ### 4. IMAGE HANDLING
-- Only mention images if they are technically relevant.
-- Format: "*(See image 1)*".
+- Mention images ONLY if they are technically relevant to answering the query.
+- Reference format: "*(See image X)*".
+- Do not interpret or assume details not explicitly described in the context.
 
-### 5. OUTPUT FORMAT
-- Use clean Markdown.
-- Use bullet points for lists.
+### 5. OUTPUT FORMAT & STYLE
+- Use clean, professional Markdown.
+- Prefer bullet points for lists and structured explanations.
+- Maintain a neutral, analytical tone.
+- Be concise but technically complete.
 """
 
 def generate_answer(query, retrieved_items, temperature=0.0):
@@ -46,10 +54,9 @@ def generate_answer(query, retrieved_items, temperature=0.0):
         text_context += "No text articles found.\n"
     else:
         for i, item in enumerate(text_items):
-            # We map the Index (i+1) to the content.
-            # The LLM sees "[1]" and associates it with this text.
-            text_context += f"\n--- DOCUMENT [{i+1}] ---\nSource Title: {item['title']}\nContent: {item['content']}\n"
-
+            citation_id = item.get('id', i + 1)
+            
+            text_context += f"\n--- DOCUMENT [{citation_id}] ---\nSource Title: {item['title']}\nContent: {item['content']}\n"
     # Process Images (Convert to base64)
     for item in image_items:
         if item.get('image_path'):
@@ -83,7 +90,7 @@ def generate_answer(query, retrieved_items, temperature=0.0):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message_content}
             ],
-            max_tokens=600, # Increased slightly to allow for citations
+            max_tokens=600,
             temperature=temperature
         )
         return response.choices[0].message.content
